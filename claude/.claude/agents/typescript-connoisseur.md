@@ -8,6 +8,10 @@ color: blue
 
 # TypeScript Best Practices 2025
 
+## Orchestration Model
+
+**Delegation rules**: See CLAUDE.md §II for complete orchestration rules and agent collaboration patterns.
+
 ---
 
 ## Core Principles
@@ -140,73 +144,45 @@ const parseUser = (data: unknown): User => {
 **When**: API boundaries, external data, config files
 **Why**: Single source of truth, runtime + compile-time safety
 
-### Schema Composition and Extension
-
-Compose schemas using `.extend()` and nested objects:
+### Schema Composition
 
 ```typescript
-const BaseEntitySchema = z.object({
-  id: z.string().uuid(),
-  createdAt: z.date(),
-})
-
-const CustomerSchema = BaseEntitySchema.extend({
-  email: z.string().email(),
-  tier: z.enum(["standard", "premium", "enterprise"]),
-})
-
-type Customer = z.infer<typeof CustomerSchema>
+const Base = z.object({ id: z.string().uuid(), createdAt: z.date() })
+const Customer = Base.extend({ email: z.string().email(), tier: z.enum(["standard", "premium"]) })
+const Profile = Base.merge(z.object({ bio: z.string() }))  // Alternative: merge
+const Public = Customer.pick({ id: true, email: true })     // Subset
+type Customer = z.infer<typeof Customer>
 ```
 
-**When**: Complex nested structures, shared base schemas
-**Why**: Reusable, DRY, type-safe composition
+**Use for**: Nested structures • Shared bases • Type-safe composition
 
 ### Schema Usage in Tests
 
-**CRITICAL**: Tests must use real schemas and types from the main project, not redefine their own.
-
 ```typescript
-// ❌ WRONG - Defining schemas in test files
-const ProjectSchema = z.object({ id: z.string(), name: z.string() })
-
-// ✅ CORRECT - Import from shared location
+// ❌ WRONG: const ProjectSchema = z.object({ id: z.string() })
+// ✅ CORRECT: Import from source
 import { ProjectSchema, type Project } from "@your-org/schemas"
-
-// ✅ Test factory validates against real schema
-const getMockProject = (overrides?: Partial<Project>): Project => {
-  return ProjectSchema.parse({ id: "proj_123", name: "Test", ...overrides })
-}
+const getMockProject = (overrides?: Partial<Project>): Project =>
+  ProjectSchema.parse({ id: "proj_123", name: "Test", ...overrides })
 ```
 
-**Why**: Type safety, consistency, prevents schema drift between tests and production
+**Why**: Prevents schema drift • Type safety • Consistency
 
 ---
 
 ## Branded Types for Domain Safety
 
 ```typescript
-// Prevent mixing similar types
 type UserId = string & { readonly brand: unique symbol }
 type OrderId = string & { readonly brand: unique symbol }
-type Email = string & { readonly brand: unique symbol }
-
 const createUserId = (id: string): UserId => id as UserId
-const createEmail = (email: string): Email => email as Email
-
-// Type-safe functions
 const getUser = (userId: UserId) => { /* ... */ }
-const sendEmail = (to: Email) => { /* ... */ }
 
-// ✅ Correct usage
-const userId = createUserId('123')
-getUser(userId)
-
-// ❌ Compile error - prevents mistakes
-const orderId = createOrderId('456')
-getUser(orderId) // Type error!
+// ✅ const userId = createUserId('123'); getUser(userId)
+// ❌ const orderId = createOrderId('456'); getUser(orderId) // Type error!
 ```
 
-**When**: Domain models, IDs, validated strings
+**Use for**: Domain models • IDs • Validated strings
 **Why**: Prevents mixing semantically different values
 
 ---
@@ -229,202 +205,108 @@ getUser(orderId) // Type error!
 
 ## Discriminated Unions
 
-Type-safe unions with a discriminant property for exhaustive checking:
-
 ```typescript
-type Result<T, E> =
-  | { success: true; data: T }
-  | { success: false; error: E }
-
+type Result<T, E> = { success: true; data: T } | { success: false; error: E }
 type PaymentState =
-  | { status: 'pending'; transactionId: string }
-  | { status: 'success'; transactionId: string; amount: number }
-  | { status: 'failed'; transactionId: string; reason: string }
+  | { status: 'pending'; txId: string }
+  | { status: 'success'; txId: string; amount: number }
+  | { status: 'failed'; txId: string; reason: string }
 
-const processPayment = (payment: PaymentState) => {
-  switch (payment.status) {
-    case 'pending': return payment.transactionId
-    case 'success': return payment.amount
-    case 'failed': return payment.reason
+const process = (p: PaymentState) => {
+  switch (p.status) {
+    case 'pending': return p.txId
+    case 'success': return p.amount
+    case 'failed': return p.reason
   }
 }
 ```
 
-**When**: State machines, result types, variant data
-**Why**: Exhaustive checking, type-safe branching, TypeScript narrows types automatically
+**Use for**: State machines • Result types • Variant data
+**Why**: Exhaustive checking • Type narrowing • Type-safe branching
 
 ---
 
 ## Type Guards
 
-Bridge runtime checks with compile-time types using `value is Type`:
-
 ```typescript
-const isUser = (value: unknown): value is User => {
-  return UserSchema.safeParse(value).success
-}
-
+const isUser = (value: unknown): value is User => UserSchema.safeParse(value).success
 const processData = (data: unknown) => {
-  if (isUser(data)) {
-    console.log(data.email) // TypeScript knows it's User
-  }
+  if (isUser(data)) console.log(data.email) // TypeScript knows it's User
 }
 ```
 
-**When**: Runtime validation, API boundaries
+**Use for**: Runtime validation • API boundaries
 **Why**: Type-safe narrowing after runtime checks
 
 ---
 
-## Never Use `any` - Use Alternatives
+## Never Use `any`
 
 ```typescript
-// ❌ NEVER
-const parse = (data: any) => data.value
-
-// ✅ Use unknown + type guard
-const parse = (data: unknown) => {
-  if (isValid(data)) {
-    return data.value
-  }
-  throw new Error('Invalid data')
-}
-
-// ✅ Use generics
-const parse = <T>(data: T) => {
-  return data
-}
-
-// ✅ Use Zod for external data
-const parse = (data: unknown) => {
-  return DataSchema.parse(data)
-}
+// ❌ const parse = (data: any) => data.value
+// ✅ const parse = (data: unknown) => { if (isValid(data)) return data.value; throw ... }
+// ✅ const parse = <T>(data: T) => data
+// ✅ const parse = (data: unknown) => DataSchema.parse(data)
 ```
 
-**When**: Always avoid `any`
-**Why**: Loses all type safety, defeats TypeScript's purpose
+**Why**: `any` loses all type safety
 
 ---
 
-## Immutability Patterns
+## Immutability & Function Types
 
-- Use `readonly` arrays and properties
-- Spread operators for updates: `{ ...user, ...updates }`
-- `DeepReadonly<T>` utility for nested readonly
-- No mutations, pure functions only
+- `readonly` arrays/properties • Spread updates: `{ ...user, ...updates }` • `DeepReadonly<T>` • Pure functions only
 
----
-
-## Function Types
-
-Define function signatures as types for callbacks, HOFs, and APIs:
-
-```typescript
-type Processor<T, R> = (input: T) => R
-type AsyncProcessor<T, R> = (input: T) => Promise<R>
-```
+**Function types**: `type Processor<T, R> = (input: T) => R | Promise<R>`
 
 ---
 
 ## Testing with TypeScript
 
-Type-safe test factories validate against real schemas:
-
 ```typescript
-const getMockUser = (overrides?: Partial<User>): User => {
-  return UserSchema.parse({
-    id: 'user-123',
-    email: 'test@example.com',
-    role: 'user',
-    createdAt: new Date(),
-    ...overrides,
-  })
-}
-
-it('should process valid user', () => {
-  const user = getMockUser({ role: 'admin' })
-  expect(processUser(user).isAdmin).toBe(true)
-})
+const getMockUser = (overrides?: Partial<User>): User =>
+  UserSchema.parse({ id: 'user-123', email: 'test@example.com', role: 'user', ...overrides })
 ```
 
-**Key**: Import real schemas, validate test data, let TypeScript catch type mismatches
+**Key**: Import real schemas • Validate test data • Let TypeScript catch mismatches
 
 ---
 
 ## Common Patterns
 
-- **Options object**: `(url: string, options: { timeout?: number } = {}) => ...`
-- **Builder pattern**: Fluent APIs with `return this` for chaining
-- **Factory functions**: Type-safe constructors for domain objects
+**Options object**: `(url: string, options: { timeout?: number } = {}) => ...`
+**Builder**: Fluent APIs with `return this`
+**Factories**: Type-safe constructors
 
 ---
 
-## Anti-Patterns to Avoid
+## Anti-Patterns & Key Reminders
 
-| ❌ Bad | ✅ Good |
-|--------|---------|
+| ❌ Avoid | ✅ Use |
+|---------|-------|
 | `any` | `unknown` + type guard |
-| Type assertions (`as`) | Proper typing or validation |
-| `@ts-ignore` | Fix the type issue |
-| Redefining types in tests | Import real types/schemas |
-| Optional chaining everywhere | Proper null handling |
-| Loose interfaces | Exact types with required fields |
+| Type assertions | Proper typing/validation |
+| `@ts-ignore` | Fix type issue |
+| Redefine types in tests | Import real types/schemas |
+
+**Key Reminders**: Never `any` • Schema-first (Zod → types) • Branded types for IDs • Immutability • Type guards • Discriminated unions • Real schemas in tests • Strict mode always
 
 ---
 
-## Key Reminders
+## Effect-TS
 
-- **Never use `any`** - Use `unknown`, generics, or Zod
-- **Schema-driven** - Define Zod schema first, infer types
-- **Branded types** - For domain-specific string/number types
-- **Immutability** - `readonly`, spread operators, no mutations
-- **Type guards** - Bridge runtime and compile-time
-- **Discriminated unions** - Type-safe state machines
-- **Test with real schemas** - Never redefine types in tests
-- **Strict mode always** - Non-negotiable
+**Use for**: Complex error handling • Structured concurrency • Dependency injection • Complex async pipelines
+
+**Skip for**: Simple CRUD (use async/await) • Teams unfamiliar with FP • Small utilities
+
+**Core**: `Effect<Success, Error, Requirements>` - typed effects with error handling + DI via Context
 
 ---
 
-## Effect-TS: Functional Effect System
+## Delegation & Collaboration
 
-Effect-TS provides typed functional effects for complex async flows, error handling, and resource management.
+**I design schemas/types. I delegate implementation/testing.**
 
-**When to Use**:
-- Complex error handling with multiple typed errors
-- Structured concurrency with resource guarantees
-- Dependency injection for testable architecture
-- Complex async pipelines
+**Pattern**: Design Zod schemas → Delegate to Backend Developer (implement) → Consult Test Writer (test strategy)
 
-**When NOT to Use**:
-- Simple CRUD (use async/await)
-- Team unfamiliar with functional patterns
-- Small utilities
-
-**Core**: `Effect<Success, Error, Requirements>` - typed effects with error handling and dependency injection via Context
-
----
-
-## Invoking Other Sub-Agents
-
-**CRITICAL**: I design schemas and types. I delegate implementation and testing to specialists.
-
-**Delegation Pattern**:
-1. Design Zod schemas and types
-2. Delegate implementation to Backend TypeScript Developer
-3. Consult Test Writer for schema test strategy
-
-**Example**:
-```
-[Task: Backend TypeScript Developer]
-Implement payment validation using PaymentSchema. Integrate into handlers.
-
-[Task: Test Writer]
-Design test strategy for PaymentSchema discriminated union variants.
-```
-
-## Working with Other Agents
-
-- **Test Writer**: Consult for schema test strategies
-- **Code Quality Enforcer**: Collaborate on type-safe patterns
-- **Backend/React Developers**: I design schemas; they implement
-- **Main Agent**: Invoked for TypeScript questions and patterns
+**Collaborate with**: Test Writer (schema tests) • Code Quality (type-safe patterns) • Backend/React (I design, they implement) • Main Agent (TypeScript questions)
