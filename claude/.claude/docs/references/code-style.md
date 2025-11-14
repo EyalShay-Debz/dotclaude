@@ -12,304 +12,41 @@
 
 ## Immutability Patterns
 
-### Arrays
+| Operation | ✅ DO (Immutable) | ❌ DON'T (Mutates) |
+|-----------|-------------------|---------------------|
+| **Arrays** |
+| Add | `[...arr, item]`, `arr.concat(item)` | `arr.push(item)`, `arr.unshift(item)` |
+| Remove | `arr.filter(i => i.id !== id)` | `arr.pop()`, `arr.shift()`, `arr.splice()` |
+| Update | `arr.map(i => i.id === id ? {...i, x} : i)` | `arr[0] = value`, `arr.sort()`, `arr.reverse()` |
+| **Objects** |
+| Add/Update | `{...obj, prop: 'value'}` | `obj.prop = 'value'`, `obj['key'] = 'value'` |
+| Remove | `const {remove, ...rest} = obj` | `delete obj.prop` |
+| Nested | `{...obj, nested: {...obj.nested, x}}` | `obj.nested.x = 'value'` |
+| Merge | `{...obj1, ...obj2}`, `Object.assign({}, a, b)` | `Object.assign(obj, updates)` |
 
-**✅ DO:**
-```typescript
-// Add items
-const newArray = [...oldArray, newItem];
-const newArray = oldArray.concat(newItem);
-
-// Remove items
-const filtered = array.filter(item => item.id !== removeId);
-
-// Update items
-const updated = array.map(item =>
-  item.id === targetId
-    ? { ...item, status: 'updated' }
-    : item
-);
-
-// Combine operations
-const result = array
-  .filter(item => item.active)
-  .map(item => ({ ...item, processed: true }));
-```
-
-**❌ DON'T:**
-```typescript
-// Never mutate arrays
-array.push(item);           // ❌
-array.pop();                // ❌
-array.shift();              // ❌
-array.unshift(item);        // ❌
-array.splice(0, 1);         // ❌
-array[0] = newValue;        // ❌
-array.sort();               // ❌ (mutates)
-array.reverse();            // ❌ (mutates)
-```
-
-### Objects
-
-**✅ DO:**
-```typescript
-// Add/update properties
-const updated = { ...original, newProp: 'value' };
-
-// Remove properties
-const { removeProp, ...rest } = original;
-
-// Nested updates
-const updated = {
-  ...original,
-  nested: {
-    ...original.nested,
-    property: 'new value'
-  }
-};
-
-// Conditional properties
-const obj = {
-  ...baseProps,
-  ...(condition && { conditionalProp: 'value' })
-};
-```
-
-**❌ DON'T:**
-```typescript
-// Never mutate objects
-obj.property = 'value';     // ❌
-obj['key'] = 'value';       // ❌
-delete obj.property;        // ❌
-Object.assign(obj, updates); // ❌ (mutates first arg)
-```
-
-### Correct Object.assign Usage
-
-**✅ DO:**
-```typescript
-// Create new object (first arg is empty object)
-const merged = Object.assign({}, obj1, obj2);
-
-// Prefer spread operator (clearer)
-const merged = { ...obj1, ...obj2 };
-```
-
----
 
 ## Functional Patterns
 
-### Pure Functions
+**Pure Functions**: Same input → same output, no side effects
+✅ `calculateTotal(items)` ❌ `calculateTotal(items, externalTaxRate)`
 
-**✅ DO:**
-```typescript
-// Pure: same input = same output
-function calculateTotal(items: Item[]): number {
-  return items.reduce((sum, item) => sum + item.price, 0);
-}
+**Side Effects**: Isolate (validate pure, then DB call) or return deferred `{data, sideEffects: {sendEmail: () => ...}}`
 
-// Pure: no side effects
-function formatUser(user: User): FormattedUser {
-  return {
-    fullName: `${user.firstName} ${user.lastName}`,
-    displayEmail: user.email.toLowerCase()
-  };
-}
-```
+**Array Methods**: Use `.map()`, `.filter()`, `.reduce()`, `.find()`, `.some()`, `.every()` ❌ No `.forEach()` for transformations, no mutation inside methods
 
-**❌ DON'T:**
-```typescript
-// Impure: depends on external state
-function calculateTotal(items: Item[]): number {
-  return items.reduce((sum, item) => sum + item.price, taxRate); // ❌ taxRate external
-}
-
-// Impure: has side effects
-function formatUser(user: User): FormattedUser {
-  console.log(user);  // ❌ side effect
-  logToAnalytics(user); // ❌ side effect
-  return { /* ... */ };
-}
-```
-
-### Side Effects
-
-**✅ DO:**
-```typescript
-// Isolate side effects
-async function saveUser(user: User): Promise<void> {
-  // Pure validation
-  const errors = validateUser(user);
-  if (errors.length > 0) {
-    throw new ValidationError(errors);
-  }
-
-  // Side effect clearly isolated
-  await database.users.insert(user);
-}
-
-// Make side effects explicit
-function processOrder(order: Order): OrderResult {
-  const validated = validateOrder(order);
-  const calculated = calculateTotals(validated);
-
-  // Side effects returned, not executed
-  return {
-    data: calculated,
-    sideEffects: {
-      sendEmail: () => emailService.send(order.email, calculated),
-      logEvent: () => analytics.track('order_processed', calculated)
-    }
-  };
-}
-```
-
-### Array Methods (Pure)
-
-**✅ DO:**
-```typescript
-// Use pure array methods
-const active = users.filter(u => u.active);
-const names = users.map(u => u.name);
-const total = items.reduce((sum, item) => sum + item.price, 0);
-const hasAdmin = users.some(u => u.role === 'admin');
-const allValid = items.every(item => item.valid);
-const found = users.find(u => u.id === targetId);
-```
-
-**❌ DON'T:**
-```typescript
-// Don't use forEach for transformations
-const names: string[] = [];
-users.forEach(u => names.push(u.name)); // ❌ use .map()
-
-// Don't mutate inside array methods
-items.map(item => {
-  item.processed = true; // ❌ mutation
-  return item;
-});
-```
-
----
 
 ## Naming Conventions
 
-### Functions
+| Type | ✅ DO | ❌ DON'T |
+|------|-------|----------|
+| **Functions** | Verbs: `calculateTotal`, `validateUser` | `doStuff`, `process`, `manager` |
+| **Booleans** | `is/has/can/should`: `isValid`, `hasPermission` | `valid`, `permission` |
+| **Event Handlers** | `handle/on`: `handleClick`, `onUserLogin` | `click`, `userLogin` |
+| **Types** | PascalCase nouns: `User`, `UserProfile` | `Data`, `Info`, `Item` (too generic) |
+| **Constants** | UPPER_SNAKE: `MAX_RETRY_ATTEMPTS` | `maxRetryAttempts` (use for derived) |
+| **Variables** | camelCase: `userProfile`, `validationErrors` | `u`, `usr`, `cfg` (abbreviations) |
+| **Files** | kebab-case: `user-service.ts`, `auth-middleware.ts` | `UserService.ts` (PascalCase) |
 
-**✅ DO:**
-```typescript
-// Verbs for actions
-function calculateTotal(items: Item[]): number
-function validateUser(user: User): ValidationError[]
-function formatDate(date: Date): string
-
-// Boolean predicates: is/has/can/should
-function isValid(user: User): boolean
-function hasPermission(user: User, resource: Resource): boolean
-function canAccess(user: User, resource: Resource): boolean
-
-// Event handlers: handle/on prefix
-function handleClick(event: MouseEvent): void
-function onUserLogin(user: User): void
-```
-
-**❌ DON'T:**
-```typescript
-// Vague names
-function doStuff(data: any): any        // ❌
-function process(input: any): any       // ❌
-function manager(x: any): any           // ❌
-
-// Misleading names
-function getUser(id: string): Promise<User>  // ❌ implies sync
-function calculateTotal(items: Item[]): Promise<number> // ❌ implies async
-```
-
-### Types
-
-**✅ DO:**
-```typescript
-// Nouns, PascalCase
-type User = { /* ... */ };
-type UserProfile = { /* ... */ };
-type ValidationError = { /* ... */ };
-
-// Descriptive, specific
-type CreateUserRequest = { /* ... */ };
-type UpdateUserResponse = { /* ... */ };
-type UserPermissions = { /* ... */ };
-```
-
-**❌ DON'T:**
-```typescript
-// Generic names
-type Data = { /* ... */ };      // ❌
-type Info = { /* ... */ };      // ❌
-type Item = { /* ... */ };      // ❌ (unless genuinely generic)
-
-// Abbreviations
-type UsrProf = { /* ... */ };   // ❌
-type ValErr = { /* ... */ };    // ❌
-```
-
-### Constants
-
-**✅ DO:**
-```typescript
-// UPPER_SNAKE_CASE for true constants
-const MAX_RETRY_ATTEMPTS = 3;
-const API_BASE_URL = 'https://api.example.com';
-const DEFAULT_TIMEOUT_MS = 5000;
-
-// camelCase for derived/computed constants
-const defaultConfig = { /* ... */ };
-const validationRules = { /* ... */ };
-```
-
-### Variables
-
-**✅ DO:**
-```typescript
-// Descriptive, camelCase
-const userProfile = getUserProfile(userId);
-const validationErrors = validateInput(formData);
-const isAuthenticated = checkAuth(token);
-
-// Boolean: is/has/can/should prefix
-const isValid = true;
-const hasPermission = false;
-const canEdit = true;
-const shouldRetry = false;
-```
-
-**❌ DON'T:**
-```typescript
-// Single letter (except loop indices)
-const u = getUser();     // ❌
-const d = new Date();    // ❌
-const x = calculate();   // ❌
-
-// Abbreviations
-const usr = getUser();   // ❌
-const cfg = getConfig(); // ❌
-const msg = getMessage(); // ❌
-```
-
-### Files
-
-**✅ DO:**
-```typescript
-// kebab-case for files
-user-service.ts
-auth-middleware.ts
-validation-utils.ts
-
-// Match primary export
-user-profile.tsx        // exports UserProfile component
-calculate-total.ts      // exports calculateTotal function
-```
-
----
 
 ## Structure Preferences
 
