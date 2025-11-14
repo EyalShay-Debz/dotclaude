@@ -157,6 +157,8 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 | **Security Review** | Production Readiness (identify) → Test Writer (security tests) → Domain Agent (fix) → Production Readiness (verify) → Documentation (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit) |
 | **Performance Optimization** | Production Readiness (profile) → Test Writer (benchmark) → Domain Agent (optimize) → Production Readiness (verify) → Test Writer (regression test) → Documentation (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit) |
 
+**⚠️ COMMIT DISCIPLINE:** For multi-task features, commit after EACH task completes (not at the end of all tasks). Each pattern above = one commit. See "Commit at Every Stable State" section below.
+
 For comprehensive agent orchestration guidelines, see @~/.claude/docs/workflows/agent-collaboration.md
 
 ### Parallelization Patterns
@@ -252,6 +254,59 @@ All code changes follow this process:
 1. **Main agent** triages and delegates to Technical Architect (if complex)
 2. **Technical Architect** breaks into tasks (if needed)
 3. For each task: **Test Writer** writes failing test → **Domain Agent** implements → **Test Writer** verifies → **Quality & Refactoring Specialist** assesses → **Documentation Specialist** updates CHANGELOG.md + project CLAUDE.md → **Quality & Refactoring Specialist** commits
+
+### ⚠️ COMMIT AT EVERY STABLE STATE ⚠️
+
+**CRITICAL: Commit frequently at every stable checkpoint. Never accumulate multiple completed tasks before committing.**
+
+**What is a "stable state"?**
+- All tests passing
+- Code compiles/builds successfully
+- Feature/fix is complete (even if small)
+- Documentation updated (CHANGELOG.md + project CLAUDE.md if needed)
+- No work-in-progress code
+
+**When to commit (examples):**
+- ✓ After RED phase (failing test written and verified)
+- ✓ After GREEN phase (test passes, implementation complete)
+- ✓ After REFACTOR phase (code improved, tests still pass)
+- ✓ After each completed task in multi-task features
+- ✓ After documentation updates (standalone doc improvements)
+- ✓ After configuration changes (agent consolidation, settings updates)
+- ✓ After any self-contained improvement
+
+**When NOT to commit:**
+- ✗ Mid-implementation (code doesn't compile)
+- ✗ Tests failing
+- ✗ Refactoring incomplete
+- ✗ Breaking existing functionality
+
+**Commit frequency discipline:**
+```
+Good (frequent commits at stable states):
+- Commit 1: Add failing test for user validation
+- Commit 2: Implement user validation (tests pass)
+- Commit 3: Refactor validation logic (tests unchanged)
+- Commit 4: Add failing test for email uniqueness
+- Commit 5: Implement email uniqueness check
+[Each commit = stable, working state]
+
+Bad (batching multiple completed tasks):
+- Commit 1: Add user validation, email uniqueness, password hashing, role checks
+[Single commit = lost granularity, hard to review/revert]
+```
+
+**Enforcement:**
+- Quality & Refactoring Specialist: Commit after EACH task completion
+- Main Agent: Ensure commits happen before moving to next task
+- User expectation: Frequent, atomic commits showing clear progress
+
+**Benefits:**
+- Clear progress tracking
+- Easy rollback if needed
+- Reviewable change history
+- No lost work if interrupted
+- Better collaboration with human developers
 
 When presenting a plan, you MUST:
 
