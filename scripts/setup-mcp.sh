@@ -38,29 +38,27 @@ if ! command -v uvx &> /dev/null; then
     MISSING_TOOLS+=("uvx (Python/uv)")
 fi
 
-# If tools are missing, provide guidance and exit
+# If tools are missing, warn but continue
 if [ ${#MISSING_TOOLS[@]} -gt 0 ]; then
-    print_error "Missing required runtime tools:"
+    print_warning "Some runtime tools are missing:"
     for tool in "${MISSING_TOOLS[@]}"; do
         echo "  ✗ $tool"
     done
     echo ""
-    print_info "MCP servers require these runtime tools:"
-    echo "  - npx: Required for context7, sequential-thinking, playwright servers"
-    echo "  - uvx: Required for serena, aws-core, aws-cdk servers"
-    echo ""
-    print_info "To install missing tools, run these installation steps:"
+    print_info "Affected MCP servers:"
     if [[ " ${MISSING_TOOLS[@]} " =~ "npx" ]]; then
-        echo "  • Node.js/npm: ./install.sh (Step 4: Development Runtimes)"
+        echo "  - context7, sequential-thinking, playwright (require npx)"
     fi
     if [[ " ${MISSING_TOOLS[@]} " =~ "uvx" ]]; then
-        echo "  • Python/uv: ./install.sh (Step 4: Development Runtimes)"
+        echo "  - aws-core, aws-cdk (require uvx)"
     fi
     echo ""
-    exit 1
+    print_info "Config will be deployed but these servers won't work until tools are installed"
+    print_info "To install: Install Node.js/npm for npx, or Python/uv for uvx"
+    echo ""
+else
+    print_success "All required runtime tools found"
 fi
-
-print_success "All required runtime tools found"
 
 # =============================================================================
 # Check for .env.mcp.local
@@ -69,15 +67,13 @@ print_success "All required runtime tools found"
 if [ ! -f "$DOTFILES_DIR/.env.mcp.local" ]; then
     print_warning ".env.mcp.local not found"
     print_info "Creating from template..."
-    
+
     cp "$DOTFILES_DIR/.env.mcp" "$DOTFILES_DIR/.env.mcp.local"
-    
-    print_warning "Please edit .env.mcp.local with your actual API keys:"
-    print_info "  1. Open: $DOTFILES_DIR/.env.mcp.local"
-    print_info "  2. Replace placeholder values with real API keys"
-    print_info "  3. Run this script again: ./scripts/setup-mcp.sh"
+    print_success "Created .env.mcp.local from template"
+
+    print_info "Note: Using placeholder API keys - some servers may not work"
+    print_info "Edit .env.mcp.local and re-run setup-mcp.sh to enable all servers"
     echo ""
-    exit 1
 fi
 
 # =============================================================================
@@ -89,32 +85,37 @@ set -a  # Automatically export all variables
 source "$DOTFILES_DIR/.env.mcp.local"
 set +a  # Disable automatic export
 
-# Validate required environment variables
+# Validate environment variables (all are optional - warn but don't fail)
 MISSING_KEYS=()
 
-# Required keys
+# Check CONTEXT7_API_KEY
 if [ "$CONTEXT7_API_KEY" = "your_api_key_here" ] || [ -z "$CONTEXT7_API_KEY" ]; then
+    print_warning "CONTEXT7_API_KEY not configured - context7 server will not be available"
+    print_info "To enable context7 later: Add CONTEXT7_API_KEY to .env.mcp.local and re-run setup-mcp.sh"
+    print_info "  • Get key from: https://console.upstash.com"
     MISSING_KEYS+=("CONTEXT7_API_KEY")
+    # Set empty value so envsubst doesn't fail
+    export CONTEXT7_API_KEY=""
 fi
 
-# Optional keys (warn but don't fail)
+# Check ANTHROPIC_API_KEY
 if [ "$ANTHROPIC_API_KEY" = "your_anthropic_api_key_here" ] || [ -z "$ANTHROPIC_API_KEY" ]; then
     print_warning "ANTHROPIC_API_KEY not configured - taskmaster server will not be available"
     print_info "To enable taskmaster later: Add ANTHROPIC_API_KEY to .env.mcp.local and re-run setup-mcp.sh"
+    MISSING_KEYS+=("ANTHROPIC_API_KEY")
     # Set empty value so envsubst doesn't fail
     export ANTHROPIC_API_KEY=""
 fi
 
-# Only fail if required keys are missing
+# Show what will work without API keys
 if [ ${#MISSING_KEYS[@]} -gt 0 ]; then
-    print_error "Missing or invalid API keys in .env.mcp.local:"
-    for key in "${MISSING_KEYS[@]}"; do
-        echo "  ✗ $key"
-    done
     echo ""
-    print_info "Please edit $DOTFILES_DIR/.env.mcp.local and set your API keys"
-    print_info "  • CONTEXT7_API_KEY: https://console.upstash.com"
-    exit 1
+    print_info "The following MCP servers will be available without API keys:"
+    echo "  ✓ sequential-thinking (no key required)"
+    echo "  ✓ playwright (no key required)"
+    echo "  ✓ aws-core (uses AWS credentials)"
+    echo "  ✓ aws-cdk (uses AWS credentials)"
+    echo ""
 fi
 
 # =============================================================================
