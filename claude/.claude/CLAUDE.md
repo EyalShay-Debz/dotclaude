@@ -490,7 +490,65 @@ This includes:
 - Update project CLAUDE.md second (if technical context discovered)
 - Then commit with both documentation updates included
 
+### Documentation Directory Structure
+
+**Complete documentation repository structure (34 files across 4 categories):**
+
+```
+~/.claude/docs/
+├── workflows/           (3 files - Process flows & procedures)
+│   ├── tdd-cycle.md                 - Complete RED-GREEN-REFACTOR TDD cycle
+│   ├── agent-collaboration.md       - How specialized agents work together
+│   └── code-review-process.md       - Code review procedures & criteria
+│
+├── patterns/            (22 files - Domain-specific best practices)
+│   ├── backend/         (4 files)
+│   │   ├── api-design.md            - REST/GraphQL API design patterns
+│   │   ├── database-design.md       - Database schema design patterns
+│   │   ├── database-integration.md  - Database query patterns
+│   │   └── lambda-patterns.md       - AWS Lambda best practices
+│   ├── react/           (3 files)
+│   │   ├── component-patterns.md    - React component design patterns
+│   │   ├── hooks.md                 - Custom hooks patterns
+│   │   └── testing.md               - React testing patterns
+│   ├── typescript/      (5 files)
+│   │   ├── schemas.md               - Schema-first with Zod
+│   │   ├── strict-mode.md           - TypeScript strict mode requirements
+│   │   ├── type-vs-interface.md     - Type vs interface guidance
+│   │   ├── branded-types.md         - Nominal typing patterns
+│   │   └── effect-ts.md             - Effect-TS functional patterns
+│   ├── security/        (2 files)
+│   │   ├── authentication.md        - Auth patterns & token handling
+│   │   └── owasp-top-10.md          - OWASP vulnerabilities & mitigations
+│   ├── refactoring/     (3 files)
+│   │   ├── common-patterns.md       - Frequent refactoring patterns
+│   │   ├── dry-semantics.md         - DRY principle guidance
+│   │   └── when-to-refactor.md      - Refactoring decision criteria
+│   └── performance/     (2 files)
+│       ├── database-optimization.md - Query & indexing optimization
+│       └── react-optimization.md    - React performance patterns
+│
+├── references/          (8 files - Quick lookups & checklists)
+│   ├── standards-checklist.md       - Pre-commit quality gates
+│   ├── code-style.md                - Code style quick reference
+│   ├── agent-quick-ref.md           - Agent selection lookup
+│   ├── working-with-claude.md       - Working with Claude effectively
+│   ├── http-status-codes.md         - HTTP status code reference
+│   ├── severity-levels.md           - Bug severity classification
+│   ├── indexing-strategies.md       - Database indexing strategies
+│   └── normalization.md             - Database normalization guide
+│
+└── examples/            (4 files - Implementation walkthroughs)
+    ├── tdd-complete-cycle.md        - Full TDD cycle example
+    ├── schema-composition.md        - Complex Zod schema examples
+    ├── factory-patterns.md          - Factory pattern implementations
+    └── refactoring-journey.md       - Before/after refactoring example
+```
+
+**All agents have access to these docs via the Read tool. Each agent file contains curated lists of most relevant docs for their domain.**
+
 ## VII. Quick Reference
+
 
 ### Task Triage Checklist
 
