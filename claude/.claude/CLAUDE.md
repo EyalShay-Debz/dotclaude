@@ -122,19 +122,19 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 **Rule**: Subagents may delegate MAX ONE LEVEL DEEP to prevent recursive loops and JS heap exhaustion.
 
 **Allowed**:
-- ✅ Main Agent → Test Writer → Code Quality & Refactoring (stops)
-- ✅ Main Agent → Backend Specialist → Database Design (stops)
+- ✅ Main Agent → Test Writer → Quality & Refactoring (stops)
+- ✅ Main Agent → Backend TypeScript Specialist (stops - handles both design and implementation)
 - ✅ Main Agent → Technical Architect (stops - returns with plan)
 
 **Prohibited**:
-- ❌ Main Agent → Backend → Database → Another Agent (too deep)
-- ❌ Main Agent → Code Quality → Backend → Database (recursive chain)
+- ❌ Main Agent → Backend → Another Agent → Yet Another Agent (too deep)
+- ❌ Main Agent → Quality & Refactoring → Backend → Another Agent (recursive chain)
 
 **Enforcement**: All agent files include explicit "MAX ONE LEVEL" delegation rules. Agents return to main agent for next delegation.
 
 **Terminal Agents** (never delegate):
 - Git & Shell Specialist
-- Documentation Agent
+- Documentation Specialist
 - TypeScript Connoisseur (rarely delegates)
 
 ### Available Specialized Agents
@@ -144,58 +144,56 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 | **Technical Architect** | Task breakdown, planning, WIP.md management | New features, complex changes, multi-session features |
 | **Test Writer** | TDD, behavioral testing | Writing tests, verifying coverage, test strategy |
 | **TypeScript Connoisseur** | TypeScript patterns, Zod schemas | Type definitions, schema design, TypeScript questions |
-| **Code Quality & Refactoring Specialist** | Code review + refactoring | Pre-commit quality checks, post-green refactoring, pattern enforcement |
-| **Security & Performance Specialist** | Security + optimization | Security audits, OWASP compliance, performance profiling, optimization |
-| **Backend TypeScript Specialist** | Backend implementation + API design | Designing and implementing REST/GraphQL APIs, Lambda functions, databases |
-| **Database Design Specialist** | Schema design, optimization | Database schema BEFORE implementation |
-| **Git & Shell Specialist** | Version control + shell scripting | Git operations, commits, PRs, shell scripts, git hooks, automation |
-| **React Engineer** | React components, hooks, SSR | React-specific implementation |
-| **AWS CDK Expert** | Infrastructure as code | CDK stacks, AWS resources, deployment |
-| **Documentation Agent** | Project documentation | Update CLAUDE.md, write docs, capture learnings |
+| **Quality & Refactoring Specialist** | Code review + refactoring + git operations | Pre-commit quality checks, post-green refactoring, pattern enforcement, commits, PRs |
+| **Production Readiness Specialist** | Security + performance | Security audits, OWASP compliance, performance profiling, optimization |
+| **Backend TypeScript Specialist** | Contract-first design + backend implementation | API/DB design, implementing REST/GraphQL APIs, Lambda functions, databases |
+| **Git & Shell Specialist** | Shell scripting + automation | Shell scripts, git hooks, automation |
+| **React TypeScript Expert** | React components, hooks, SSR | React-specific implementation |
+| **Documentation Specialist** | Project documentation | Update CLAUDE.md, CHANGELOG.md, write docs, capture learnings |
 
 ### Critical Orchestration Rules
 
 #### For New Features
 **Pattern:** Architect → Design (API/DB) → TDD cycle (Test → Implement → Verify → Review → Document → Commit) → Repeat
 1. Technical Architect: Break feature into testable tasks
-2. API/Database Design: Design contracts and schema (if needed)
-3. For each task: Test Writer (failing test) → Domain Agent (implement) → Test Writer (verify) → Security & Performance (if needed) → Code Quality & Refactoring (assess) → Documentation Agent (CHANGELOG + CLAUDE.md) → Git & Shell (commit)
+2. Backend TypeScript Specialist: Design API contracts and database schema (if needed)
+3. For each task: Test Writer (failing test) → Domain Agent (implement) → Test Writer (verify) → Production Readiness (if needed) → Quality & Refactoring (assess) → Documentation Specialist (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit)
 
 #### For Bug Fixes
 **Pattern:** Reproduce → Fix → Verify → Assess → Document → Commit
-Test Writer (failing test) → Domain Agent (fix) → Test Writer (verify + edge cases) → Code Quality & Refactoring (assess if larger issues) → Documentation Agent (CHANGELOG + CLAUDE.md) → Git & Shell (commit)
+Test Writer (failing test) → Domain Agent (fix) → Test Writer (verify + edge cases) → Quality & Refactoring (assess if larger issues) → Documentation Specialist (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit)
 
 #### For Refactoring
 **Pattern:** Assess → Verify coverage → Refactor → Verify tests unchanged → Review → Document → Commit
-Code Quality & Refactoring (assess) → Test Writer (100% coverage check) → Domain Agent (refactor maintaining API) → Test Writer (tests pass without changes) → Code Quality & Refactoring (review) → Documentation Agent (CHANGELOG + CLAUDE.md) → Git & Shell (commit)
+Quality & Refactoring (assess) → Test Writer (100% coverage check) → Domain Agent (refactor maintaining API) → Test Writer (tests pass without changes) → Quality & Refactoring (review) → Documentation Specialist (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit)
 
 #### For Code Review
 **Pattern:** Sequential batches of parallel consultation → Synthesize
-Run first batch (Code Quality & Refactoring + Test Writer), then second batch (TypeScript Connoisseur + Security & Performance). NEVER run more than 2 agents in parallel. Synthesize feedback prioritized by impact.
+Run first batch (Quality & Refactoring + Test Writer), then second batch (TypeScript Connoisseur + Production Readiness). NEVER run more than 2 agents in parallel. Synthesize feedback prioritized by impact.
 
 #### For Documentation
-**Pattern:** Documentation Agent → Domain Agent (if needed) → Git & Shell
+**Pattern:** Documentation Specialist → Domain Agent (if needed) → Quality & Refactoring (commit)
 
 #### For Security Review
 **Pattern:** Audit → Test → Fix → Verify → Document → Commit
-Security & Performance (identify) → Test Writer (security tests) → Domain Agent (fix) → Security & Performance (verify) → Documentation Agent (CHANGELOG + CLAUDE.md) → Git & Shell (commit)
+Production Readiness (identify) → Test Writer (security tests) → Domain Agent (fix) → Production Readiness (verify) → Documentation Specialist (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit)
 
 #### For Performance Optimization
 **Pattern:** Profile → Benchmark → Optimize → Verify → Regression test → Document → Commit
-Security & Performance (profile) → Test Writer (benchmark) → Domain Agent (optimize) → Security & Performance (verify) → Test Writer (regression test) → Documentation Agent (CHANGELOG + CLAUDE.md) → Git & Shell (commit)
+Production Readiness (profile) → Test Writer (benchmark) → Domain Agent (optimize) → Production Readiness (verify) → Test Writer (regression test) → Documentation Specialist (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit)
 
 ### Agent Collaboration Patterns
 
 #### Sequential Delegation
 Most common pattern. Tasks flow through agents in order:
 ```
-Main → Architect → Test Writer → Domain Agent → Code Quality & Refactoring → Git & Shell
+Main → Architect → Test Writer → Domain Agent → Quality & Refactoring → Documentation Specialist
 ```
 
 #### Parallel Consultation
 For cross-cutting concerns, consult multiple agents simultaneously:
 ```
-Main → [Code Quality & Refactoring + Test Writer + TypeScript] → Synthesize
+Main → [Quality & Refactoring + Test Writer] → Synthesize
 ```
 Use when review requires multiple perspectives.
 
@@ -212,19 +210,18 @@ Choose based on **primary technology** of task:
 
 | Task Type | Primary Agent | Supporting Agents |
 |-----------|--------------|-------------------|
-| API design | Backend TypeScript Specialist | TypeScript Connoisseur, Security & Performance |
-| Database schema | Database Design Specialist | TypeScript Connoisseur, Backend TypeScript Specialist |
-| React component | React Engineer | TypeScript Connoisseur, Test Writer |
-| Lambda function | Backend TypeScript Specialist | Database Design Specialist |
+| API design | Backend TypeScript Specialist | TypeScript Connoisseur, Production Readiness |
+| Database schema | Backend TypeScript Specialist | TypeScript Connoisseur |
+| React component | React TypeScript Expert | TypeScript Connoisseur, Test Writer |
+| Lambda function | Backend TypeScript Specialist | — |
 | Shell scripts | Git & Shell Specialist | — |
-| Security review | Security & Performance Specialist | Test Writer, Domain Agent |
-| Performance optimization | Security & Performance Specialist | Database Design Specialist, Domain Agent |
-| CDK infrastructure | AWS CDK Expert | Backend TypeScript Specialist, Security & Performance |
+| Security review | Production Readiness Specialist | Test Writer, Domain Agent |
+| Performance optimization | Production Readiness Specialist | Domain Agent |
 | Type definitions | TypeScript Connoisseur | — |
 | Testing | Test Writer | Domain agent for setup |
-| Refactoring | Code Quality & Refactoring Specialist | Test Writer |
-| Code review | Code Quality & Refactoring Specialist | Test Writer, TypeScript Connoisseur |
-| Git operations | Git & Shell Specialist | — |
+| Refactoring | Quality & Refactoring Specialist | Test Writer |
+| Code review | Quality & Refactoring Specialist | Test Writer, TypeScript Connoisseur |
+| Git operations | Quality & Refactoring Specialist | — |
 
 ### Parallelization Patterns
 
@@ -238,32 +235,32 @@ Choose based on **primary technology** of task:
 #### Pattern 1: Comprehensive Code Review
 **When:** Pre-merge, pre-production review, significant refactoring
 **Agents:** Run in sequential batches of 2:
-- **Batch 1:** Code Quality & Refactoring + Test Writer
-- **Batch 2:** TypeScript Connoisseur + Security & Performance
+- **Batch 1:** Quality & Refactoring + Test Writer
+- **Batch 2:** TypeScript Connoisseur + Production Readiness
 **Result:** Synthesized feedback prioritized by impact
 **Note:** NEVER run all 4 agents in parallel - causes system crashes
 
-#### Pattern 2: Parallel Design Phase
-**When:** New feature requiring multiple design domains
-**Agents:** Backend TypeScript Specialist + Database Design Specialist (2 agents - compliant)
-**Result:** Aligned design specs ready for implementation
+#### Pattern 2: Parallel Design and Test Planning
+**When:** New feature requiring API/DB design
+**Agents:** Backend TypeScript Specialist + Test Writer (2 agents - compliant)
+**Result:** Complete contracts and test strategy ready for implementation
 
-#### Pattern 3: Security + Performance Audit
+#### Pattern 3: Production Readiness Audit
 **When:** Pre-production readiness, critical features
-**Agents:** Security & Performance Specialist + (optional) Code Quality & Refactoring (2 agents - compliant, can run in parallel)
+**Agents:** Production Readiness Specialist + Quality & Refactoring (2 agents - compliant, can run in parallel)
 **Result:** Comprehensive readiness assessment
 **Note:** Agent consolidation made this pattern compliant with 2-agent limit
 
 #### Pattern 4: Post-Implementation Verification
 **When:** After feature implementation, before considering complete
-**Agents:** Test Writer + Security & Performance Specialist (2 agents - compliant, can run in parallel)
+**Agents:** Test Writer + Production Readiness Specialist (2 agents - compliant, can run in parallel)
 **Result:** Full coverage, security, and performance verification
 **Note:** Agent consolidation made this pattern compliant with 2-agent limit
 
 #### Pattern 5: Parallel Investigation
 **When:** Complex bugs requiring multiple analysis angles
 **Agents:** Run in sequential batches of 2 maximum:
-- **Batch 1:** Security & Performance + Domain Agent
+- **Batch 1:** Production Readiness + Domain Agent
 - **Batch 2:** Test Writer (run separately if needed)
 **Result:** Multi-angle bug diagnosis
 **Note:** NEVER run 3 agents in parallel - causes system crashes
@@ -362,9 +359,9 @@ All code changes follow this process:
    - **Test Writer** writes failing test
    - **Domain Agent** implements minimum code to pass
    - **Test Writer** verifies coverage
-   - **Code Quality & Refactoring Specialist** assesses and refactors if valuable
-   - **Documentation Agent** updates CHANGELOG.md (required) + project CLAUDE.md (if gotchas discovered)
-   - **Git & Shell Specialist** commits changes (includes documentation updates)
+   - **Quality & Refactoring Specialist** assesses and refactors if valuable
+   - **Documentation Specialist** updates CHANGELOG.md (required) + project CLAUDE.md (if gotchas discovered)
+   - **Quality & Refactoring Specialist** commits changes (includes documentation updates)
 
 For comprehensive workflow details including:
 - Plan requirements and format
@@ -403,9 +400,9 @@ When presenting a plan via ExitPlanMode, you MUST:
 ```
 Step 1: Test Writer - Write failing tests for user authentication
 Step 2: Backend TypeScript Specialist - Implement auth to pass tests (after Step 1)
-Step 3: Security & Performance Specialist - Security review auth implementation (after Step 2)
-Step 4: Code Quality & Refactoring Specialist - Assess refactoring opportunities (after Step 2)
-Step 5: Git & Shell Specialist - Commit auth implementation (after Steps 3 and 4)
+Step 3: Production Readiness Specialist - Security review auth implementation (after Step 2)
+Step 4: Quality & Refactoring Specialist - Assess refactoring opportunities (after Step 2)
+Step 5: Quality & Refactoring Specialist - Commit auth implementation (after Steps 3 and 4)
 ```
 
 **Enforcement:** User will reject plans that don't specify sub-agents for each step.
@@ -480,7 +477,7 @@ This includes:
 - ❌ Random documentation files
 
 **Enforcement:**
-- Main agent must check if Documentation Agent tries to create new .md files
+- Main agent must check if Documentation Specialist tries to create new .md files
 - If detected, redirect to update CHANGELOG.md instead
 - Exception: User explicitly requests specific filename and purpose
 
@@ -488,7 +485,7 @@ This includes:
 - Documentation happens BEFORE commit, not after
 - Update CHANGELOG.md first (required)
 - Update project CLAUDE.md second (if technical context discovered)
-- Then commit with both documentation updates included
+- Then Quality & Refactoring Specialist commits with both documentation updates included
 
 ### Documentation Directory Structure
 
@@ -549,15 +546,14 @@ This includes:
 
 ## VII. Quick Reference
 
-
 ### Task Triage Checklist
 
-1. ☐ Is this a new feature? → Technical Architect + Test Writer + Domain Agent
+1. ☐ Is this a new feature? → Technical Architect + Backend TypeScript Specialist (design) + Test Writer + Domain Agent
 2. ☐ Is this a bug fix? → Test Writer + Domain Agent
-3. ☐ Is this refactoring? → Code Quality & Refactoring Specialist + Domain Agent
-4. ☐ Is this code review? → Code Quality & Refactoring Specialist + Test Writer + Domain Agent
-5. ☐ Is this documentation? → Documentation Agent
-6. ☐ Is this a git operation? → Git & Shell Specialist
+3. ☐ Is this refactoring? → Quality & Refactoring Specialist + Domain Agent
+4. ☐ Is this code review? → Quality & Refactoring Specialist + Test Writer + Domain Agent
+5. ☐ Is this documentation? → Documentation Specialist
+6. ☐ Is this a git operation? → Quality & Refactoring Specialist
 7. ☐ Are requirements unclear? → Ask user first
 
 ### Agent Quick Lookup
@@ -565,14 +561,13 @@ This includes:
 - **Planning**: Technical Architect
 - **Testing**: Test Writer
 - **TypeScript**: TypeScript Connoisseur
-- **Code Quality**: Code Quality & Refactoring Specialist
-- **Security & Performance**: Security & Performance Specialist
-- **Backend & APIs**: Backend TypeScript Specialist
-- **Database**: Database Design Specialist
-- **Shell & Git**: Git & Shell Specialist
-- **React**: React Engineer
-- **AWS**: AWS CDK Expert
-- **Docs**: Documentation Agent
+- **Code Quality & Refactoring**: Quality & Refactoring Specialist
+- **Security & Performance**: Production Readiness Specialist
+- **Backend (API/DB Design + Implementation)**: Backend TypeScript Specialist
+- **Shell Scripts**: Git & Shell Specialist
+- **React**: React TypeScript Expert
+- **Docs**: Documentation Specialist
+- **Git Operations**: Quality & Refactoring Specialist
 
 ### Core Principles Quick Check
 
