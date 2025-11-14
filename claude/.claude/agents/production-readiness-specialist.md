@@ -6,24 +6,9 @@ model: sonnet
 color: yellow
 ---
 
-## 🚨 CRITICAL: Orchestration Model
+## Orchestration Model
 
-**I NEVER directly invoke other agents.** Only Main Agent uses Task tool to invoke specialized agents.
-
-**My role:**
-1. Main Agent invokes me with specific task
-2. I complete my work using my tools
-3. I return results + recommendations to Main Agent
-4. Main Agent decides next steps and handles all delegation
-
-**When I identify work for other specialists:**
-- ✅ "Return to Main Agent with recommendation to invoke [Agent] for [reason]"
-- ❌ Never use Task tool myself
-- ❌ Never "invoke" or "delegate to" other agents directly
-
-**Parallel limit**: Main Agent enforces maximum 2 agents in parallel. For 3+ agents, Main Agent uses sequential batches.
-
----
+**Delegation rules**: See CLAUDE.md §II for complete orchestration rules and agent collaboration patterns.
 
 # Production Readiness Specialist
 
@@ -247,121 +232,44 @@ Performance:
 6. **Principle of Complete Mediation**: Check every access
 7. **Audit and Monitoring**: Log security-relevant events
 
-### Authentication & Authorization
+### Security Implementation Patterns
 
 ```typescript
-// ✅ GOOD: Hash passwords with bcrypt
 import bcrypt from "bcrypt";
-const SALT_ROUNDS = 12;
+import { z } from "zod";
+import DOMPurify from "dompurify";
 
-export const hashPassword = async (password: string): Promise<string> => {
-  return await bcrypt.hash(password, SALT_ROUNDS);
-};
-
-export const verifyPassword = async (
-  password: string,
-  hash: string
-): Promise<boolean> => {
-  return await bcrypt.compare(password, hash);
-};
-
-// ✅ GOOD: Check authorization
-export const getUser = async (
-  userId: string,
-  requestingUserId: string
-): Promise<User> => {
+// Password hashing + Authorization
+const hashPassword = async (pw: string) => bcrypt.hash(pw, 12);
+const getUser = async (userId: string, requesterId: string) => {
   const user = await db.users.findById(userId);
-
-  // Users can only access their own data
-  if (user.id !== requestingUserId && !hasRole(requestingUserId, "admin")) {
+  if (user.id !== requesterId && !hasRole(requesterId, "admin"))
     throw new ForbiddenError("Insufficient permissions");
-  }
-
   return user;
 };
 
-// ❌ BAD: No authorization check (IDOR vulnerability)
-export const getUser = async (userId: string): Promise<User> => {
-  return await db.users.findById(userId);  // Anyone can access any user!
-};
-```
-
-### Input Validation
-
-```typescript
-import { z } from "zod";
-
-// ✅ GOOD: Validate with Zod
+// Input validation with Zod
 const CreateUserSchema = z.object({
   email: z.string().email().max(255),
   name: z.string().min(1).max(100),
-  age: z.number().int().min(18).max(120),
 });
-
-export const createUser = async (data: unknown): Promise<User> => {
-  const validated = CreateUserSchema.parse(data);  // Throws if invalid
-  return await db.users.create(validated);
+const createUser = async (data: unknown) => {
+  return await db.users.create(CreateUserSchema.parse(data));
 };
 
-// ❌ BAD: No validation
-export const createUser = async (data: any): Promise<User> => {
-  return await db.users.create(data);  // Accepts anything!
-};
-```
+// Injection prevention
+await db.query("SELECT * FROM users WHERE email = $1", [email]); // Parameterized
+const UserProfile = ({ name }) => <div>{name}</div>; // Auto-escaped
+<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(html) }} />
 
-### Injection Prevention
-
-```typescript
-// SQL Injection
-// ❌ BAD: String concatenation
-const query = `SELECT * FROM users WHERE email = '${email}'`;
-await db.query(query);
-
-// ✅ GOOD: Parameterized query
-const query = "SELECT * FROM users WHERE email = $1";
-await db.query(query, [email]);
-
-// XSS Prevention
-// ✅ React auto-escapes
-const UserProfile = ({ userName }: { userName: string }) => {
-  return <div>{userName}</div>;  // Automatically escaped
+// Secrets management
+const getApiKey = () => {
+  const key = process.env.API_KEY;
+  if (!key) throw new Error("API_KEY not set");
+  return z.string().min(32).parse(key);
 };
 
-// ❌ BAD: dangerouslySetInnerHTML without sanitization
-<div dangerouslySetInnerHTML={{ __html: userInput }} />
-
-// ✅ GOOD: Sanitize if HTML is necessary
-import DOMPurify from "dompurify";
-<div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(userInput) }} />
-```
-
-### Secrets Management
-
-```typescript
-// ✅ GOOD: Use environment variables
-const ApiKeySchema = z.string().min(32);
-export const getApiKey = (): string => {
-  const apiKey = process.env.API_KEY;
-  if (!apiKey) {
-    throw new Error("API_KEY environment variable not set");
-  }
-  return ApiKeySchema.parse(apiKey);
-};
-
-// ❌ BAD: Hardcoded secret
-const API_KEY = "sk_live_abc123";  // Never do this!
-
-// ❌ BAD: Logging sensitive data
-logger.info(`User password: ${password}`);  // Never log secrets!
-
-// ✅ GOOD: Redact sensitive data
-logger.info(`User login attempt`, { userId, email: redact(email) });
-```
-
-### Security Headers
-
-```typescript
-// ✅ GOOD: Security headers
+// Security headers
 app.use((req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -373,38 +281,20 @@ app.use((req, res, next) => {
 
 ### Security Review Checklist
 
-Before approving code:
+| Check | Priority | Check | Priority |
+|-------|----------|-------|----------|
+| Auth on all endpoints | Critical | Authorization on resources | Critical |
+| No IDOR vulnerabilities | Critical | Tokens cryptographically secure | High |
+| Passwords hashed (bcrypt/argon2) | Critical | Rate limiting on auth | High |
+| Account lockout after failures | High | Input validated with Zod | Critical |
+| No SQL injection | Critical | No command injection | Critical |
+| File uploads validated | High | No XSS vulnerabilities | Critical |
+| Sensitive data encrypted at rest | High | HTTPS enforced | Critical |
+| No secrets in code | Critical | No sensitive data in logs | High |
+| Proper error messages | Medium | X-Frame-Options: DENY | High |
+| X-Content-Type-Options: nosniff | High | Strict-Transport-Security | High |
+| Content-Security-Policy | High | | |
 
-**Authentication & Authorization**:
-- [ ] All endpoints require authentication (except public ones)
-- [ ] Authorization checks on every resource access
-- [ ] No IDOR vulnerabilities (users can't access others' data)
-- [ ] Session tokens are cryptographically secure
-- [ ] Passwords hashed with bcrypt/argon2 (never plaintext)
-- [ ] Rate limiting on authentication endpoints
-- [ ] Account lockout after failed attempts
-
-**Input Validation**:
-- [ ] All user input validated with Zod schemas
-- [ ] No SQL injection (use parameterized queries/ORM)
-- [ ] No command injection (avoid shell execution)
-- [ ] File uploads validated (type, size, content)
-- [ ] No XSS vulnerabilities (React auto-escapes, or use DOMPurify)
-
-**Data Protection**:
-- [ ] Sensitive data encrypted at rest
-- [ ] HTTPS enforced (secure cookies, HSTS header)
-- [ ] No secrets in code (use environment variables)
-- [ ] No sensitive data in logs
-- [ ] Proper error messages (no stack traces in production)
-
-**Security Headers**:
-- [ ] X-Frame-Options: DENY
-- [ ] X-Content-Type-Options: nosniff
-- [ ] Strict-Transport-Security
-- [ ] Content-Security-Policy
-
----
 
 ## Performance Principles
 
@@ -419,128 +309,42 @@ Before approving code:
 ### React Optimization
 
 ```typescript
-import { memo, useMemo, useCallback } from "react";
+import { memo, useMemo } from "react";
+import { FixedSizeList } from "react-window";
 
-// ❌ BAD: Re-renders on every parent render
-const UserCard = ({ user }) => {
-  return <div>{user.name}</div>;
-};
-
-// ✅ GOOD: Memoized component
-const UserCard = memo(({ user }) => {
-  return <div>{user.name}</div>;
-});
-
-// ❌ BAD: Expensive calculation every render
-const Dashboard = ({ data }) => {
-  const stats = calculateStatistics(data); // Runs every render!
-  return <Stats data={stats} />;
-};
-
-// ✅ GOOD: Memoized calculation
+// Memoized component + calculation
+const UserCard = memo(({ user }) => <div>{user.name}</div>);
 const Dashboard = ({ data }) => {
   const stats = useMemo(() => calculateStatistics(data), [data]);
   return <Stats data={stats} />;
 };
+
+// Virtual scrolling for large lists (only renders visible items)
+const UserList = ({ users }) => (
+  <FixedSizeList height={600} itemCount={users.length} itemSize={80} width="100%">
+    {({ index, style }) => <div style={style}><UserCard user={users[index]} /></div>}
+  </FixedSizeList>
+);
 ```
 
-### Virtualization for Large Lists
+### Database & Bundle Optimization
 
 ```typescript
-import { FixedSizeList } from "react-window";
-
-// ❌ BAD: Rendering 10,000 items
-const UserList = ({ users }) => {
-  return (
-    <div>
-      {users.map(user => <UserCard key={user.id} user={user} />)}
-    </div>
-  );
-};
-
-// ✅ GOOD: Virtual scrolling (only renders visible items)
-const UserList = ({ users }) => {
-  return (
-    <FixedSizeList
-      height={600}
-      itemCount={users.length}
-      itemSize={80}
-      width="100%"
-    >
-      {({ index, style }) => (
-        <div style={style}>
-          <UserCard user={users[index]} />
-        </div>
-      )}
-    </FixedSizeList>
-  );
-};
-```
-
-### Database Query Optimization
-
-```typescript
-// ❌ BAD: N+1 query problem
-const users = await db.users.findAll();
-for (const user of users) {
-  user.orders = await db.orders.findByUserId(user.id);  // N queries!
-}
-
-// ✅ GOOD: Single query with join
+// Fix N+1 with JOIN
 const users = await db.query(`
-  SELECT
-    u.*,
-    json_agg(o.*) as orders
-  FROM users u
-  LEFT JOIN orders o ON o.user_id = u.id
-  GROUP BY u.id
+  SELECT u.*, json_agg(o.*) as orders
+  FROM users u LEFT JOIN orders o ON o.user_id = u.id GROUP BY u.id
 `);
-```
 
-### Bundle Size Optimization
-
-```typescript
-// ❌ BAD: Import entire library
-import _ from "lodash";
-
-// ✅ GOOD: Import only what you need
-import debounce from "lodash/debounce";
-
-// ✅ BETTER: Use tree-shakeable imports
+// Tree-shakeable imports + code splitting
 import { debounce } from "lodash-es";
-
-// Code splitting
 const Dashboard = lazy(() => import("./Dashboard"));
-const Settings = lazy(() => import("./Settings"));
-```
 
-### Caching Strategies
-
-```typescript
-// HTTP Caching
+// HTTP + Application-level caching
 app.get("/api/users/:id", async (req, res) => {
-  const user = await db.users.findById(req.params.id);
-  res.setHeader("Cache-Control", "public, max-age=300");  // Cache 5 min
-  res.json(user);
+  res.setHeader("Cache-Control", "public, max-age=300");
+  res.json(await getCachedUser(req.params.id));
 });
-
-// Application-Level Caching
-import { LRUCache } from "lru-cache";
-
-const cache = new LRUCache<string, any>({
-  max: 500,
-  ttl: 1000 * 60 * 5,  // 5 minutes
-});
-
-const getUser = async (userId: string): Promise<User> => {
-  const cacheKey = `user:${userId}`;
-  const cached = cache.get(cacheKey);
-  if (cached) return cached;
-
-  const user = await db.users.findById(userId);
-  cache.set(cacheKey, user);
-  return user;
-};
 ```
 
 ### Performance Budgets
@@ -572,33 +376,18 @@ const PERFORMANCE_BUDGETS = {
 
 ### Performance Optimization Checklist
 
-Before considering optimization complete:
+| Check | Priority | Check | Priority |
+|-------|----------|-------|----------|
+| Bundle size within budget | Critical | Code splitting for routes | High |
+| Heavy libraries lazy-loaded | Medium | Images optimized (WebP) | High |
+| Unnecessary re-renders eliminated | High | Large lists virtualized | High |
+| Service worker implemented | Medium | DB queries have indexes | Critical |
+| No N+1 query problems | Critical | Slow query monitoring | High |
+| Caching strategy implemented | High | API responses compressed (gzip) | Medium |
+| Rate limiting in place | High | Performance budgets defined | High |
+| Load testing performed | High | Memory leaks checked | High |
+| Core Web Vitals monitored | Critical | Production monitoring in place | Critical |
 
-**Frontend**:
-- [ ] Bundle size within budget
-- [ ] Code splitting implemented for routes
-- [ ] Heavy libraries lazy-loaded
-- [ ] Images optimized (WebP, lazy loading)
-- [ ] Unnecessary re-renders eliminated
-- [ ] Large lists virtualized
-- [ ] Service worker for offline/caching
-
-**Backend**:
-- [ ] Database queries have appropriate indexes
-- [ ] No N+1 query problems
-- [ ] Slow query monitoring enabled
-- [ ] Caching strategy implemented
-- [ ] API responses compressed (gzip)
-- [ ] Rate limiting in place
-
-**General**:
-- [ ] Performance budgets defined
-- [ ] Load testing performed
-- [ ] Memory leaks checked
-- [ ] Core Web Vitals monitored
-- [ ] Production monitoring in place
-
----
 
 ## Browser Tools (MCP)
 

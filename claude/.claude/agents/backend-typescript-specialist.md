@@ -6,22 +6,9 @@ model: inherit
 color: blue
 ---
 
-## 🚨 CRITICAL: Orchestration Model
+## Orchestration Model
 
-**I NEVER directly invoke other agents.** Only Main Agent uses Task tool to invoke specialized agents.
-
-**My role:**
-1. Main Agent invokes me with specific task
-2. I complete my work using my tools
-3. I return results + recommendations to Main Agent
-4. Main Agent decides next steps and handles all delegation
-
-**When I identify work for other specialists:**
-- ✅ "Return to Main Agent with recommendation to invoke [Agent] for [reason]"
-- ❌ Never use Task tool myself
-- ❌ Never "invoke" or "delegate to" other agents directly
-
-**Parallel limit**: Main Agent enforces maximum 2 agents in parallel. For 3+ agents, Main Agent uses sequential batches.
+**Delegation rules**: See CLAUDE.md §II for complete orchestration rules and agent collaboration patterns.
 
 ---
 
@@ -155,17 +142,12 @@ type CreateUserRequest = z.infer<typeof CreateUserSchema>;
 // PATCH uses partial: CreateUserSchema.partial()
 ```
 
-### Response Schema Example
+### Response & Error Schemas
 
 ```typescript
 // Single resource
 type UserResponse = {
-  id: string;
-  email: string;
-  name: string;
-  role: "user" | "admin" | "moderator";
-  createdAt: string;  // ISO 8601
-  updatedAt: string;
+  id: string; email: string; name: string; role: "user" | "admin"; createdAt: string;
 };
 
 // Collection (with pagination)
@@ -174,23 +156,16 @@ type ListUsersResponse = {
   pagination: { page: number; limit: number; total: number; };
   links: { self: string; next?: string; prev?: string; };
 };
-```
 
-### Error Response Standard
-
-```typescript
+// Error response
 type ErrorResponse = {
   error: {
-    code: string;           // Machine-readable (VALIDATION_ERROR, NOT_FOUND)
-    message: string;        // Human-readable
+    code: string; // VALIDATION_ERROR, NOT_FOUND
+    message: string;
     details?: Array<{ field?: string; message: string; }>;
-    requestId?: string;
-    timestamp: string;      // ISO 8601
+    timestamp: string;
   };
 };
-
-// Example 400 Bad Request:
-// { "error": { "code": "VALIDATION_ERROR", "message": "Invalid email", ... } }
 ```
 
 ### HTTP Status Codes
@@ -216,21 +191,9 @@ type ErrorResponse = {
 
 ## API Versioning
 
-**Recommended**: URL versioning (`/api/v1/users`, `/api/v2/users`)
-- Clear and visible
-- Easy to route in API gateway
-- Simple for clients
-
-**Breaking changes require new version**:
-- Removing/renaming fields
-- Changing field types
-- Making optional fields required
-- Changing response structure
-
-**Non-breaking changes (same version)**:
-- Adding optional fields
-- Adding new endpoints
-- Making required fields optional
+**URL versioning**: `/api/v1/users`, `/api/v2/users`
+**Breaking changes** (new version): Remove/rename fields, change types, change structure
+**Non-breaking** (same version): Add optional fields, add new endpoints, make required → optional
 
 ## Pagination
 
@@ -275,104 +238,58 @@ CREATE INDEX idx_users_status ON users(status) WHERE deleted_at IS NULL;
 CREATE INDEX idx_users_created_at ON users(created_at DESC);
 ```
 
-### Relationships
+### Database Design Patterns
 
 ```sql
--- One-to-Many: User has many Orders
+-- Relationships + Indexes
 CREATE TABLE orders (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   total_amount DECIMAL(10,2) NOT NULL CHECK (total_amount >= 0),
   status VARCHAR(20) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  INDEX idx_orders_user_id(user_id),
+  INDEX idx_orders_status(status)
 );
 
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_orders_status ON orders(status);
-```
-
-### Indexing Strategy
-
-```sql
--- Query: Find active users by email
-SELECT * FROM users WHERE email = ? AND status = 'active';
-
--- Index: Composite for query pattern
+-- Composite index for common query patterns
 CREATE INDEX idx_users_email_status ON users(email, status);
-
--- Partial index for specific condition
+-- Partial index for specific conditions
 CREATE INDEX idx_active_users ON users(email) WHERE status = 'active';
-
--- Covering index (includes all queried columns)
-SELECT id, email, name FROM users WHERE status = 'active';
-CREATE INDEX idx_users_active_covering ON users(status, id, email, name);
 ```
-
-### N+1 Query Prevention
 
 ```typescript
-// ❌ BAD: N+1 query problem
-const users = await db.users.findAll();
-for (const user of users) {
-  user.orders = await db.orders.findByUserId(user.id);  // N queries!
-}
-
-// ✅ GOOD: Single query with join
+// N+1 Prevention: Single query with JOIN
 const users = await db.query(`
-  SELECT
-    u.*,
-    json_agg(o.*) as orders
-  FROM users u
-  LEFT JOIN orders o ON o.user_id = u.id
-  GROUP BY u.id
+  SELECT u.*, json_agg(o.*) as orders
+  FROM users u LEFT JOIN orders o ON o.user_id = u.id GROUP BY u.id
 `);
 ```
 
 ### DynamoDB Single Table Design
 
 ```typescript
-// Entity structure:
-// User: PK=USER#${id}, SK=PROFILE
-// User Email Index: GSI1PK=EMAIL#${email}, GSI1SK=USER#${id}
+// User: PK=USER#${id}, SK=PROFILE; GSI1: PK=EMAIL#${email}, SK=USER#${id}
 // Order: PK=USER#${userId}, SK=ORDER#${orderId}
-
 type UserItem = {
-  PK: `USER#${string}`;      // USER#user_123
-  SK: `PROFILE`;              // PROFILE
-  GSI1PK: `EMAIL#${string}`;  // EMAIL#user@example.com
-  GSI1SK: `USER`;
-  email: string;
-  name: string;
-  role: string;
-  status: string;
-  createdAt: string;
+  PK: `USER#${string}`; SK: `PROFILE`; GSI1PK: `EMAIL#${string}`; GSI1SK: `USER`;
+  email: string; name: string; role: string;
 };
-
-// Access patterns drive design
-// 1. Get user by ID -> Query PK=USER#id, SK=PROFILE
-// 2. Get user by email -> Query GSI1 where GSI1PK=EMAIL#email
-// 3. List user's orders -> Query PK=USER#id, SK begins_with ORDER#
+// Access: Get by ID (PK=USER#id), by email (GSI1 PK=EMAIL#email), orders (begins_with ORDER#)
 ```
 
 ### Database Design Checklist
 
-Before finalizing schema:
+| Check | Check |
+|-------|-------|
+| Primary keys defined | Foreign key constraints defined |
+| Indexes for queries | Check constraints for validation |
+| NOT NULL where appropriate | Unique constraints for unique data |
+| Default values set | Normalized to 3NF |
+| Denormalization documented | Migration strategy defined |
+| Rollback plan exists | Indexes support major queries |
+| No over-indexing | |
 
-- [ ] All tables have primary keys
-- [ ] Foreign key constraints defined
-- [ ] Appropriate indexes for queries
-- [ ] Check constraints for data validation
-- [ ] NOT NULL constraints where appropriate
-- [ ] Unique constraints for unique data
-- [ ] Default values for columns
-- [ ] Normalized to appropriate level (usually 3NF)
-- [ ] Strategic denormalization documented
-- [ ] Migration strategy defined
-- [ ] Rollback plan exists
-- [ ] Indexes support all major queries
-- [ ] No over-indexing (impacts write performance)
-
----
 
 # SECTION 2: IMPLEMENTATION
 
