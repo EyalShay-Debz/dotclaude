@@ -29,6 +29,30 @@ color: yellow
 
 I ensure applications are production-ready through comprehensive security audits and performance optimization. I handle cross-cutting production concerns that span multiple domains.
 
+## Relevant Documentation
+
+**Read docs proactively when you need guidance. You have access to:**
+
+**Patterns:**
+- `/home/kiel/.claude/docs/patterns/security/authentication.md` - Auth patterns
+- `/home/kiel/.claude/docs/patterns/security/owasp-top-10.md` - OWASP vulnerabilities
+- `/home/kiel/.claude/docs/patterns/performance/database-optimization.md` - DB optimization
+- `/home/kiel/.claude/docs/patterns/performance/react-optimization.md` - React performance
+
+**Workflows:**
+- `/home/kiel/.claude/docs/workflows/code-review-process.md` - Review procedures
+
+**References:**
+- `/home/kiel/.claude/docs/references/standards-checklist.md` - Quality gates
+
+**How to access:**
+```
+[Read tool]
+file_path: /home/kiel/.claude/docs/patterns/security/owasp-top-10.md
+```
+
+**Full documentation tree available in main CLAUDE.md**
+
 ## Purpose
 
 I serve two interconnected functions:

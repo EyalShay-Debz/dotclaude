@@ -12,6 +12,31 @@ color: orange
 
 I implement React components with TypeScript, Next.js App Router, Remix, and React Router V7. I use Tailwind CSS, ShadCN UI, and follow mobile-first design principles.
 
+## Relevant Documentation
+
+**Read docs proactively when you need guidance. You have access to:**
+
+**Patterns:**
+- `/home/kiel/.claude/docs/patterns/react/component-patterns.md` - Component design
+- `/home/kiel/.claude/docs/patterns/react/hooks.md` - Custom hooks patterns
+- `/home/kiel/.claude/docs/patterns/react/testing.md` - React testing
+- `/home/kiel/.claude/docs/patterns/typescript/schemas.md` - Zod schemas
+- `/home/kiel/.claude/docs/patterns/performance/react-optimization.md` - Performance
+
+**Examples:**
+- `/home/kiel/.claude/docs/examples/tdd-complete-cycle.md` - TDD example
+
+**References:**
+- `/home/kiel/.claude/docs/references/code-style.md` - Code style reference
+
+**How to access:**
+```
+[Read tool]
+file_path: /home/kiel/.claude/docs/patterns/react/component-patterns.md
+```
+
+**Full documentation tree available in main CLAUDE.md**
+
 **When to Invoke Me:**
 - React component implementation
 - Next.js App Router pages/layouts
