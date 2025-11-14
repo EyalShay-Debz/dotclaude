@@ -81,6 +81,16 @@
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/notify-claude.sh"
+          }
+        ]
+      }
     ]
   },
   "forceLoginMethod": "claudeai",
