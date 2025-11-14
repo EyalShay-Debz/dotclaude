@@ -10,7 +10,7 @@ print_header "Installing Claude Code"
 if command_exists claude; then
     CLAUDE_VERSION=$(claude --version 2>&1 | head -n1)
     print_success "Claude Code found: $CLAUDE_VERSION"
-    
+
     echo ""
     if confirm "Update Claude Code to latest version?"; then
         if is_macos; then
@@ -18,8 +18,23 @@ if command_exists claude; then
             print_success "Claude Code updated"
         elif is_linux; then
             print_info "Updating Claude Code..."
-            npm install -g @anthropics/claude-code@latest
-            print_success "Claude Code updated"
+
+            # Check if package is installed in system directory (requires sudo)
+            local pkg_path
+            pkg_path=$(npm root -g 2>/dev/null)/@anthropic-ai/claude-code
+
+            if [[ -d "$pkg_path" ]] && [[ ! -w "$pkg_path" ]]; then
+                print_warning "Claude Code is installed globally and requires elevated permissions"
+                if confirm "Use sudo to update?"; then
+                    sudo npm install -g @anthropic-ai/claude-code@latest
+                    print_success "Claude Code updated"
+                else
+                    print_warning "Skipping update"
+                fi
+            else
+                npm install -g @anthropic-ai/claude-code@latest
+                print_success "Claude Code updated"
+            fi
         fi
     fi
 else
@@ -42,14 +57,14 @@ else
             
         elif is_linux; then
             print_info "Installing via npm..."
-            
+
             if ! command_exists npm; then
                 print_error "npm is required to install Claude Code"
                 print_info "Please install Node.js and npm first"
                 return 1
             fi
-            
-            sudo npm install -g @anthropics/claude-code
+
+            npm install -g @anthropic-ai/claude-code
             print_success "Claude Code installed"
         fi
         
