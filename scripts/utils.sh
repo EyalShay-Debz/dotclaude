@@ -6,12 +6,12 @@
 # Common functions used across installation and setup scripts
 # =============================================================================
 
-# Color codes
-readonly GREEN='\033[0;32m'
-readonly YELLOW='\033[1;33m'
-readonly RED='\033[0;31m'
-readonly BLUE='\033[0;34m'
-readonly NC='\033[0m' # No Color
+# Color codes (using $'...' syntax to create actual escape sequences)
+readonly GREEN=$'\033[0;32m'
+readonly YELLOW=$'\033[1;33m'
+readonly RED=$'\033[0;31m'
+readonly BLUE=$'\033[0;34m'
+readonly NC=$'\033[0m' # No Color
 
 # =============================================================================
 # Output Functions
