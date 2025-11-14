@@ -286,6 +286,11 @@ backup_existing_config() {
     local backup_path
     backup_path=$(backup_file "$CLAUDE_CONFIG_DIR")
     print_success "Backed up ~/.claude"
+    # Remove original after backup (unless it's already a symlink, handled later)
+    if [[ ! -L "$CLAUDE_CONFIG_DIR" ]]; then
+      rm -rf "$CLAUDE_CONFIG_DIR"
+      print_info "Removed original ~/.claude directory"
+    fi
     backed_up=true
   else
     print_info "No existing ~/.claude directory found"
@@ -296,6 +301,11 @@ backup_existing_config() {
     local backup_path
     backup_path=$(backup_file "$MCP_CONFIG_FILE")
     print_success "Backed up ~/.mcp.json"
+    # Remove original after backup
+    if [[ ! -L "$MCP_CONFIG_FILE" ]]; then
+      rm -f "$MCP_CONFIG_FILE"
+      print_info "Removed original ~/.mcp.json file"
+    fi
     backed_up=true
   else
     print_info "No existing ~/.mcp.json file found"
@@ -372,7 +382,21 @@ install_claude_code() {
       if is_macos; then
         brew upgrade claude || print_warning "Failed to update (may already be latest)"
       elif is_linux; then
-        npm install -g @anthropics/claude-code@latest
+        # Check if package is installed in system directory (requires sudo)
+        local pkg_path
+        pkg_path=$(npm root -g 2>/dev/null)/@anthropic-ai/claude-code
+
+        if [[ -d "$pkg_path" ]] && [[ ! -w "$pkg_path" ]]; then
+          print_warning "Claude Code is installed globally and requires elevated permissions"
+          if confirm "Use sudo to update?"; then
+            sudo npm install -g @anthropic-ai/claude-code@latest
+          else
+            print_warning "Skipping update"
+            return 0
+          fi
+        else
+          npm install -g @anthropic-ai/claude-code@latest
+        fi
       fi
       print_success "Claude Code updated"
     fi
@@ -415,7 +439,7 @@ install_claude_code() {
       return 1
     fi
 
-    npm install -g @anthropics/claude-code
+    npm install -g @anthropic-ai/claude-code
     print_success "Claude Code installed"
   fi
 
@@ -521,34 +545,33 @@ ${GREEN}✓${NC} Claude Code configuration installed successfully!
 
 ${BLUE}Next steps:${NC}
 
-${YELLOW}1. Configure API keys:${NC}
+${YELLOW}1. Configure API keys (optional):${NC}
    ${BLUE}cd $SCRIPT_DIR${NC}
-   ${BLUE}cp .env.mcp .env.mcp.local${NC}
    ${BLUE}# Edit .env.mcp.local with your actual API keys${NC}
+   ${BLUE}# Then run: ./scripts/setup-mcp.sh${NC}
 
-${YELLOW}2. Deploy MCP configuration:${NC}
-   ${BLUE}./scripts/setup-mcp.sh${NC}
+   Note: 4 of 6 MCP servers work without API keys!
 
-${YELLOW}3. Test Claude Code:${NC}
+${YELLOW}2. Test Claude Code:${NC}
    ${BLUE}claude --version${NC}
 
-${YELLOW}4. Verify MCP servers:${NC}
+${YELLOW}3. Verify MCP servers:${NC}
    ${BLUE}./scripts/list-mcp-tools.sh${NC}
 
-${YELLOW}5. Start using Claude Code:${NC}
+${YELLOW}4. Start using Claude Code:${NC}
    ${BLUE}claude${NC}
 
 ${BLUE}For more information:${NC}
    • Documentation: ~/.claude/docs/
    • MCP servers: ~/.mcp.json
-   • Environment template: .env.mcp
+   • Add API keys: .env.mcp.local
 
 ${GREEN}Happy coding with Claude!${NC}
 
 EOF
 }
 
-show_next_steps_already_configured() {
+show_next_steps_configured() {
   print_header "Installation Complete"
 
   cat << EOF
@@ -627,19 +650,15 @@ main() {
   install_claude_code
 
   # Deploy MCP configuration
-  if [[ -f "$SCRIPT_DIR/.env.mcp.local" ]]; then
-    deploy_mcp_config
-  else
-    print_warning "Skipping MCP deployment (.env.mcp.local not found)"
-    print_info "Configure API keys first, then run: scripts/setup-mcp.sh"
-  fi
+  # Always deploy MCP config (works even without API keys for some servers)
+  deploy_mcp_config
 
   # Validate installation
   validate_installation
 
   # Show next steps
   if [[ -f "$SCRIPT_DIR/.env.mcp.local" ]] && [[ -f "$MCP_CONFIG_FILE" ]]; then
-    show_next_steps_already_configured
+    show_next_steps_configured
   else
     show_next_steps
   fi
