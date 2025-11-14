@@ -49,6 +49,10 @@
 !claude/.claude/plugins/
 !claude/.claude/plugins/**
 
+# Claude scripts - ALLOW ALL
+!claude/.claude/scripts/
+!claude/.claude/scripts/**
+
 # =============================================================================
 # RUNTIME/GENERATED FILES - EXPLICIT IGNORES
 # =============================================================================
