@@ -1,0 +1,95 @@
+# dotclaude .gitignore - Whitelist Strategy
+# Ignore everything by default, then explicitly allow what we want to track
+
+# =============================================================================
+# IGNORE EVERYTHING BY DEFAULT
+# =============================================================================
+*
+
+# =============================================================================
+# ROOT LEVEL FILES - ALLOW
+# =============================================================================
+!.gitignore
+!README.md
+!install.sh
+!.env.mcp
+
+# =============================================================================
+# MCP DIRECTORY - ALLOW ALL
+# =============================================================================
+!mcp/
+!mcp/**
+
+# =============================================================================
+# SCRIPTS DIRECTORY - ALLOW ALL
+# =============================================================================
+!scripts/
+!scripts/**
+
+# =============================================================================
+# CLAUDE DIRECTORY - SELECTIVE ALLOW
+# =============================================================================
+!claude/
+!claude/.claude/
+
+# Claude root configuration files - ALLOW
+!claude/.claude/CLAUDE.md
+!claude/.claude/CHANGELOG_TEMPLATE.md
+!claude/.claude/settings.json
+
+# Claude agents - ALLOW ALL
+!claude/.claude/agents/
+!claude/.claude/agents/**
+
+# Claude docs - ALLOW ALL
+!claude/.claude/docs/
+!claude/.claude/docs/**
+
+# Claude plugins - ALLOW ALL
+!claude/.claude/plugins/
+!claude/.claude/plugins/**
+
+# =============================================================================
+# RUNTIME/GENERATED FILES - EXPLICIT IGNORES
+# =============================================================================
+# These are explicitly ignored even if parent directories are allowed
+
+# Claude runtime directories
+claude/.claude/debug/
+claude/.claude/debug/**
+claude/.claude/history.jsonl
+claude/.claude/shell-snapshots/
+claude/.claude/shell-snapshots/**
+claude/.claude/statsig/
+claude/.claude/statsig/**
+claude/.claude/todos/
+claude/.claude/todos/**
+claude/.claude/projects/
+claude/.claude/projects/**
+claude/.claude/file-history/
+claude/.claude/file-history/**
+claude/.claude/session-env/
+claude/.claude/session-env/**
+claude/.claude/ide/
+claude/.claude/ide/**
+
+# Claude log files
+claude/.claude/*.log
+
+# Local settings and secrets
+claude/.claude/settings.local.json
+.env.mcp.local
+**/*.local
+
+# System files
+.DS_Store
+**/.DS_Store
+
+# =============================================================================
+# NOTES
+# =============================================================================
+# This whitelist approach ensures:
+# 1. Only explicitly allowed files/directories are tracked
+# 2. New files/directories are ignored by default (safe by default)
+# 3. Runtime and generated files never leak into version control
+# 4. Clear separation between template (.env.mcp) and local secrets (.env.mcp.local)
