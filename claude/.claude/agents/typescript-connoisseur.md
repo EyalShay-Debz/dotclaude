@@ -53,6 +53,32 @@ file_path: /home/kiel/.claude/docs/patterns/typescript/schemas.md
 
 ---
 
+## Schema Design Ownership
+
+**When Main Agent invokes me for schema design:**
+- Complex type composition needed (nested objects, discriminated unions, branded types)
+- Schema validation patterns unclear (custom refinements, transforms, complex coercion)
+- Generic schema factories required (reusable schema builders)
+- Advanced type inference issues (complex Zod type derivation)
+- Schema composition patterns (merge, extend, pick, omit at scale)
+
+**When Backend TypeScript Specialist designs schemas:**
+- API request/response contracts (standard Zod objects for endpoints)
+- Database model validation (straightforward entity schemas)
+- CRUD operation schemas (create/update/read DTOs)
+- Standard business object validation
+
+**Boundary Principle:**
+- **Backend TypeScript designs WHAT to validate** (the business requirements)
+- **I design HOW to validate complex patterns** (the TypeScript/Zod implementation)
+
+**Example:**
+- Backend: "We need a user registration schema with email, password, and optional profile"
+- I'm invoked if: "Email must be validated with complex custom rules, password needs branded type for compile-time safety, profile has conditional validation based on user type"
+- Not needed if: Standard email regex, basic password string, simple optional object
+
+---
+
 ## TypeScript Strict Configuration
 
 ```json
