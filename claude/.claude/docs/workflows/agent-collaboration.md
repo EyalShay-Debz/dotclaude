@@ -332,7 +332,7 @@ Present prioritized feedback to user
 | React components | React Engineer | Component implementation, hooks, SSR, client state |
 | API endpoints | Backend TypeScript Developer | Lambda functions, Express routes, API logic, AWS CDK stacks |
 | Database schema | Design Specialist | Schema design, migrations, queries, optimization |
-| Shell scripts | Bash/Shell Specialist | Installation scripts, git hooks, CLI automation |
+| Shell scripts | Shell Specialist | Installation scripts, git hooks, CLI automation |
 | Type definitions | TypeScript Connoisseur | Complex types, generics, schema design |
 | Tests | Test Writer | All testing activities, coverage verification |
 
