@@ -107,37 +107,6 @@ useEffect(() => {
 ### useDebounce - Delay Rapid Updates
 
 ```typescript
-function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-}
-
-// Usage - search input with API call
-function SearchResults() {
-  const [query, setQuery] = useState('');
-  const debouncedQuery = useDebounce(query, 500);
-
-  useEffect(() => {
-    if (debouncedQuery) {
-      searchAPI(debouncedQuery).then(setResults);
-    }
-  }, [debouncedQuery]);
-
-  return <input value={query} onChange={(e) => setQuery(e.target.value)} />;
-}
-```
-
 **Use cases:**
 - Search input (avoid API call on every keystroke)
 - Window resize handlers
@@ -177,47 +146,6 @@ const useIsTablet = () => useMediaQuery('(min-width: 769px) and (max-width: 1024
 const useIsDesktop = () => useMediaQuery('(min-width: 1025px)');
 ```
 
-### useOnClickOutside - Detect Outside Clicks
-
-```typescript
-function useOnClickOutside<T extends HTMLElement>(
-  ref: React.RefObject<T>,
-  handler: (event: MouseEvent | TouchEvent) => void
-): void {
-  useEffect(() => {
-    const listener = (event: MouseEvent | TouchEvent) => {
-      const element = ref.current;
-      if (!element || element.contains(event.target as Node)) {
-        return;
-      }
-      handler(event);
-    };
-
-    document.addEventListener('mousedown', listener);
-    document.addEventListener('touchstart', listener);
-
-    return () => {
-      document.removeEventListener('mousedown', listener);
-      document.removeEventListener('touchstart', listener);
-    };
-  }, [ref, handler]);
-}
-
-// Usage - close dropdown on outside click
-function Dropdown() {
-  const [isOpen, setIsOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  useOnClickOutside(dropdownRef, () => setIsOpen(false));
-
-  return (
-    <div ref={dropdownRef}>
-      <button onClick={() => setIsOpen(!isOpen)}>Toggle</button>
-      {isOpen && <div className="dropdown-menu">Content</div>}
-    </div>
-  );
-}
-```
 
 ---
 
@@ -267,47 +195,6 @@ function useAsync<T, Args extends any[]>(
   );
 
   const reset = useCallback(() => {
-    setData(null);
-    setError(null);
-    setIsLoading(false);
-  }, []);
-
-  useEffect(() => {
-    if (options.immediate) {
-      execute();
-    }
-  }, [options.immediate, execute]);
-
-  return { data, error, isLoading, execute, reset };
-}
-
-// Usage
-function UserProfile({ userId }: { userId: string }) {
-  const {
-    data: user,
-    error,
-    isLoading,
-    execute: loadUser
-  } = useAsync(
-    (id: string) => fetchUser(id),
-    {
-      immediate: true,
-      onSuccess: (user) => console.log('User loaded:', user.name),
-      onError: (error) => console.error('Failed to load user:', error)
-    }
-  );
-
-  if (isLoading) return <Spinner />;
-  if (error) return <ErrorMessage error={error} retry={() => loadUser(userId)} />;
-  if (!user) return null;
-
-  return <div>Welcome, {user.name}</div>;
-}
-```
-
----
-
-## When to Create Custom Hooks
 
 ### Good Candidates for Custom Hooks
 
