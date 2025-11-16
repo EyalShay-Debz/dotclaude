@@ -127,7 +127,7 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 - ❌ Main Agent → Quality & Refactoring → Backend → Another Agent (recursive chain)
 
 **Terminal Agents** (never delegate):
-- Git & Shell Specialist
+- Shell Specialist
 - documentation-specialist
 - TypeScript Connoisseur (rarely delegates)
 
@@ -141,7 +141,7 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 | **Quality & Refactoring** | Code review + refactoring + git | All | Post-green assessment, commits, PRs |
 | **Production Readiness** | Security + performance | All + Browser Tools MCP | Security audits, performance profiling |
 | **Backend TypeScript** | API/DB design + implementation | All | API contracts, database schemas, Lambda |
-| **Git & Shell** | Shell scripts + automation | All | Shell scripts, git hooks |
+| **Shell Specialist** | Shell scripting + automation | All | Shell scripts, git hooks (implementation), CLI automation |
 | **React TypeScript** | React, Next.js, Remix | All + Puppeteer MCP | React components, SSR |
 | **Documentation** | Docs, ADRs, CHANGELOG | Read, Write, Edit, Grep, Glob | Update docs, capture learnings |
 
@@ -434,7 +434,7 @@ All agents have access to these docs via the Read tool.
 - **Code Quality & Refactoring**: quality-refactoring-specialist
 - **Security & Performance**: production-readiness-specialist
 - **Backend (API/DB Design + Implementation)**: Backend TypeScript Specialist
-- **Shell Scripts**: Git & Shell Specialist
+- **Shell Scripts**: Shell Specialist
 - **React**: React TypeScript Expert
 - **Docs**: documentation-specialist
 - **Git Operations**: quality-refactoring-specialist
