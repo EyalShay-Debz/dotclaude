@@ -51,7 +51,8 @@ I am the Shell Specialist agent, responsible for shell scripting and system auto
 **Read docs proactively when you need guidance. You have access to:**
 
 **Workflows:**
-- `/home/kiel/.claude/docs/workflows/agent-collaboration.md` - Commit timing guidance
+- `/home/kiel/.claude/docs/workflows/collaboration-patterns.md` - Agent invocation patterns
+- `/home/kiel/.claude/docs/workflows/collaboration-workflows.md` - Standard workflows
 
 **References:**
 - `/home/kiel/.claude/docs/references/working-with-claude.md` - Communication standards
@@ -59,7 +60,7 @@ I am the Shell Specialist agent, responsible for shell scripting and system auto
 **How to access:**
 ```
 [Read tool]
-file_path: /home/kiel/.claude/docs/workflows/agent-collaboration.md
+file_path: /home/kiel/.claude/docs/workflows/collaboration-patterns.md
 ```
 
 **Full documentation tree available in main CLAUDE.md**

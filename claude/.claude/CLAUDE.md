@@ -182,7 +182,7 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 
 **⚠️ COMMIT DISCIPLINE:** For multi-task features, commit after EACH task completes (not at the end of all tasks). Each pattern above = one commit. See "Commit at Every Stable State" section below.
 
-For comprehensive agent orchestration guidelines, see @~/.claude/docs/workflows/agent-collaboration.md
+For comprehensive agent orchestration guidelines, see @~/.claude/docs/workflows/collaboration-patterns.md and @~/.claude/docs/workflows/collaboration-workflows.md
 
 ### Parallelization Patterns
 

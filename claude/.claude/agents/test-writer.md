@@ -52,12 +52,15 @@ You are an elite Test-Driven Development specialist focused on behavioral testin
 - `/home/kiel/.claude/docs/workflows/tdd-cycle.md` - Complete TDD process
 
 **Patterns:**
-- `/home/kiel/.claude/docs/patterns/react/testing.md` - React testing patterns
+- `/home/kiel/.claude/docs/patterns/react/testing-queries.md` - React Testing Library queries
+- `/home/kiel/.claude/docs/patterns/react/testing-patterns.md` - React testing patterns
+- `/home/kiel/.claude/docs/patterns/react/testing-mocks.md` - Mocking strategies
 - `/home/kiel/.claude/docs/patterns/typescript/schemas.md` - Schema-first with Zod
 
 **Examples:**
 - `/home/kiel/.claude/docs/examples/tdd-complete-cycle.md` - Full TDD walkthrough
-- `/home/kiel/.claude/docs/examples/factory-patterns.md` - Test factory examples
+- `/home/kiel/.claude/docs/examples/factory-basics.md` - Basic test factory patterns
+- `/home/kiel/.claude/docs/examples/factory-advanced.md` - Advanced factory patterns
 
 **References:**
 - `/home/kiel/.claude/docs/references/code-style.md` - Code style reference

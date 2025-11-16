@@ -50,7 +50,8 @@ Main Agent then decides next steps and invokes appropriate agents.
 
 **Workflows:**
 - `/home/kiel/.claude/docs/workflows/tdd-cycle.md` - TDD process
-- `/home/kiel/.claude/docs/workflows/agent-collaboration.md` - Agent coordination
+- `/home/kiel/.claude/docs/workflows/collaboration-patterns.md` - Agent invocation patterns
+- `/home/kiel/.claude/docs/workflows/collaboration-workflows.md` - Standard workflows
 - `/home/kiel/.claude/docs/workflows/code-review-process.md` - Review procedures
 
 **References:**
@@ -60,7 +61,7 @@ Main Agent then decides next steps and invokes appropriate agents.
 **How to access:**
 ```
 [Read tool]
-file_path: /home/kiel/.claude/docs/workflows/agent-collaboration.md
+file_path: /home/kiel/.claude/docs/workflows/collaboration-patterns.md
 ```
 
 **Full documentation tree available in main CLAUDE.md**
@@ -272,4 +273,4 @@ RECOMMENDATION:
 
 ## Further Reading
 
-TDD by Kent Beck • Growing Object-Oriented Software • Main CLAUDE.md • `@docs/workflows/agent-collaboration.md` • `@docs/references/agent-quick-ref.md`
+TDD by Kent Beck • Growing Object-Oriented Software • Main CLAUDE.md • `@docs/workflows/collaboration-patterns.md` • `@docs/workflows/collaboration-workflows.md` • `@docs/references/agent-quick-ref.md`

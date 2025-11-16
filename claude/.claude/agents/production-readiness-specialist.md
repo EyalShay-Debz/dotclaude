@@ -49,9 +49,14 @@ I ensure applications are production-ready through comprehensive security audits
 **Read docs proactively when you need guidance. You have access to:**
 
 **Patterns:**
-- `/home/kiel/.claude/docs/patterns/security/authentication.md` - Auth patterns
-- `/home/kiel/.claude/docs/patterns/security/owasp-top-10.md` - OWASP vulnerabilities
-- `/home/kiel/.claude/docs/patterns/performance/database-optimization.md` - DB optimization
+- `/home/kiel/.claude/docs/patterns/security/auth-jwt.md` - JWT authentication
+- `/home/kiel/.claude/docs/patterns/security/auth-oauth.md` - OAuth flows
+- `/home/kiel/.claude/docs/patterns/security/auth-sessions.md` - Session management
+- `/home/kiel/.claude/docs/patterns/security/owasp-injection.md` - Injection prevention
+- `/home/kiel/.claude/docs/patterns/security/owasp-auth.md` - Authentication vulnerabilities
+- `/home/kiel/.claude/docs/patterns/security/owasp-crypto.md` - Cryptographic failures
+- `/home/kiel/.claude/docs/patterns/performance/db-perf-queries.md` - Query optimization
+- `/home/kiel/.claude/docs/patterns/performance/db-perf-indexing.md` - Indexing strategies
 - `/home/kiel/.claude/docs/patterns/performance/react-optimization.md` - React performance
 
 **Workflows:**
@@ -303,10 +308,15 @@ For comprehensive pre-production audit:
 
 **For comprehensive patterns and examples**:
 - `@~/.claude/docs/references/severity-levels.md` - Security + Performance severity guide
-- `@~/.claude/docs/patterns/security/owasp-top-10.md` - OWASP Top 10 prevention
-- `@~/.claude/docs/patterns/security/authentication.md` - Auth best practices
+- `@~/.claude/docs/patterns/security/owasp-injection.md` - Injection prevention
+- `@~/.claude/docs/patterns/security/owasp-auth.md` - Authentication vulnerabilities
+- `@~/.claude/docs/patterns/security/owasp-crypto.md` - Cryptographic failures
+- `@~/.claude/docs/patterns/security/auth-jwt.md` - JWT best practices
+- `@~/.claude/docs/patterns/security/auth-oauth.md` - OAuth flows
+- `@~/.claude/docs/patterns/security/auth-sessions.md` - Session management
 - `@~/.claude/docs/patterns/performance/react-optimization.md` - React optimization patterns
-- `@~/.claude/docs/patterns/performance/database-optimization.md` - Database optimization patterns
+- `@~/.claude/docs/patterns/performance/db-perf-queries.md` - Query optimization
+- `@~/.claude/docs/patterns/performance/db-perf-indexing.md` - Indexing strategies
 - OWASP Top 10: https://owasp.org/www-project-top-ten/
 - Web.dev Performance: https://web.dev/performance/
 

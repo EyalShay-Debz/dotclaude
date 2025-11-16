@@ -28,8 +28,11 @@ I am responsible for contract-first design (API + database) and backend implemen
 
 **Patterns:**
 - `/home/kiel/.claude/docs/patterns/backend/api-design.md` - REST/GraphQL API design
-- `/home/kiel/.claude/docs/patterns/backend/database-design.md` - Database schema patterns
-- `/home/kiel/.claude/docs/patterns/backend/database-integration.md` - Query patterns
+- `/home/kiel/.claude/docs/patterns/backend/sql-schema-design.md` - SQL schema patterns
+- `/home/kiel/.claude/docs/patterns/backend/dynamodb-schema-design.md` - DynamoDB schema patterns
+- `/home/kiel/.claude/docs/patterns/backend/dynamodb-patterns.md` - DynamoDB query patterns
+- `/home/kiel/.claude/docs/patterns/backend/prisma-patterns.md` - Prisma integration
+- `/home/kiel/.claude/docs/patterns/backend/mongodb-patterns.md` - MongoDB integration
 - `/home/kiel/.claude/docs/patterns/backend/lambda-patterns.md` - AWS Lambda patterns
 - `/home/kiel/.claude/docs/patterns/typescript/schemas.md` - Zod schema patterns
 

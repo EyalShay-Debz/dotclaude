@@ -56,7 +56,8 @@ I create, maintain, and audit documentation to ensure it is discoverable, valuab
 **Examples:**
 - `/home/kiel/.claude/docs/examples/tdd-complete-cycle.md` - TDD example
 - `/home/kiel/.claude/docs/examples/schema-composition.md` - Schema examples
-- `/home/kiel/.claude/docs/examples/factory-patterns.md` - Factory patterns
+- `/home/kiel/.claude/docs/examples/factory-basics.md` - Basic factory patterns
+- `/home/kiel/.claude/docs/examples/factory-advanced.md` - Advanced factory patterns
 - `/home/kiel/.claude/docs/examples/refactoring-journey.md` - Refactoring example
 
 **How to access:**
