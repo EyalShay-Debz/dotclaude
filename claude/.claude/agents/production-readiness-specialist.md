@@ -68,7 +68,9 @@ I ensure applications are production-ready through comprehensive security audits
 **How to access:**
 ```
 [Read tool]
-file_path: /home/kiel/.claude/docs/patterns/security/owasp-top-10.md
+file_path: /home/kiel/.claude/docs/patterns/security/owasp-injection.md
+file_path: /home/kiel/.claude/docs/patterns/security/owasp-auth.md
+file_path: /home/kiel/.claude/docs/patterns/security/owasp-crypto.md
 ```
 
 **Full documentation tree available in main CLAUDE.md**
