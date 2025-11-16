@@ -3,10 +3,10 @@
 ## Core Principles
 
 1. **Contract-First**: Design API contract before implementation
-2. **Consistency**: Uniform patterns across all endpoints
+2. **Consistency**: Uniform patterns across endpoints
 3. **Resource-Oriented**: Model domain entities as resources
-4. **Versioning**: Plan for evolution from the start
-5. **Self-Documenting**: Clear, predictable endpoint structure
+4. **Versioning**: Plan for evolution from start
+5. **Self-Documenting**: Clear, predictable structure
 
 ## Resource Naming
 
@@ -17,9 +17,7 @@ GET    /api/users/:id
 POST   /api/users
 PATCH  /api/users/:id
 DELETE /api/users/:id
-
 GET    /api/users/:userId/orders
-GET    /api/orders/:orderId/items
 
 ❌ BAD: Verbs in URLs
 GET    /api/getUsers
@@ -35,11 +33,11 @@ GET    /api/users/:userId/orders/:orderId/items/:itemId/reviews
 
 | Method | Purpose | Idempotent | Returns |
 |--------|---------|------------|---------|
-| GET | Retrieve data | Yes | Resource(s) |
-| POST | Create resource | No | Created resource (201) |
-| PUT | Full replacement | Yes | Updated resource |
+| GET | Retrieve | Yes | Resource(s) |
+| POST | Create | No | 201 + resource |
+| PUT | Full replace | Yes | Updated resource |
 | PATCH | Partial update | Yes | Updated resource |
-| DELETE | Remove resource | Yes | 204 No Content |
+| DELETE | Remove | Yes | 204 No Content |
 
 ## Request Schemas
 
@@ -50,9 +48,9 @@ import { z } from "zod";
 const ListUsersQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  sort: z.enum(["createdAt", "name", "email"]).default("createdAt"),
+  sort: z.enum(["createdAt", "name"]).default("createdAt"),
   order: z.enum(["asc", "desc"]).default("desc"),
-  status: z.enum(["active", "suspended", "pending"]).optional(),
+  status: z.enum(["active", "suspended"]).optional(),
   search: z.string().max(100).optional(),
 });
 
@@ -60,15 +58,11 @@ const ListUsersQuerySchema = z.object({
 const CreateUserRequestSchema = z.object({
   email: z.string().email().max(255),
   name: z.string().min(1).max(100),
-  role: z.enum(["user", "admin", "moderator"]),
-  metadata: z.record(z.unknown()).optional(),
+  role: z.enum(["user", "admin"]),
 });
 
-// PATCH /api/users/:id - Partial update (all optional)
+// PATCH /api/users/:id - Partial update
 const UpdateUserRequestSchema = CreateUserRequestSchema.partial();
-
-// PUT /api/users/:id - Full replacement (all required)
-const ReplaceUserRequestSchema = CreateUserRequestSchema;
 ```
 
 ## Response Schemas
@@ -79,8 +73,7 @@ type UserResponse = {
   id: string;
   email: string;
   name: string;
-  role: "user" | "admin" | "moderator";
-  status: "active" | "suspended" | "pending";
+  role: "user" | "admin";
   createdAt: string;  // ISO 8601
   updatedAt: string;
 };
@@ -92,7 +85,6 @@ type UserResponse = {
     "email": "user@example.com",
     "name": "John Doe",
     "role": "user",
-    "status": "active",
     "createdAt": "2025-01-15T10:30:00Z",
     "updatedAt": "2025-01-15T10:30:00Z"
   }
@@ -119,33 +111,23 @@ type ListUsersResponse = {
 };
 ```
 
-### Created Resource (201)
-```typescript
-{
-  "data": { /* created user */ },
-  "links": {
-    "self": "/api/users/550e8400-e29b-41d4-a716-446655440000"
-  }
-}
-```
-
 ## Error Responses
 
 ```typescript
 type ErrorResponse = {
   error: {
-    code: string;           // Machine-readable error code
-    message: string;        // Human-readable message
-    details?: ErrorDetail[]; // Validation errors
-    requestId?: string;     // For support/debugging
-    timestamp: string;      // ISO 8601
+    code: string;           // Machine-readable
+    message: string;        // Human-readable
+    details?: ErrorDetail[];
+    requestId?: string;
+    timestamp: string;
   };
 };
 
 type ErrorDetail = {
-  field?: string;    // Which field caused error
-  message: string;   // Specific error message
-  code?: string;     // Field-specific error code
+  field?: string;
+  message: string;
+  code?: string;
 };
 ```
 
@@ -157,22 +139,8 @@ type ErrorDetail = {
     "code": "VALIDATION_ERROR",
     "message": "Request validation failed",
     "details": [
-      {
-        "field": "email",
-        "message": "Invalid email format",
-        "code": "INVALID_EMAIL"
-      }
+      { "field": "email", "message": "Invalid email format" }
     ],
-    "requestId": "req_abc123",
-    "timestamp": "2025-01-15T10:30:00Z"
-  }
-}
-
-// 404 Not Found
-{
-  "error": {
-    "code": "RESOURCE_NOT_FOUND",
-    "message": "User not found",
     "timestamp": "2025-01-15T10:30:00Z"
   }
 }
@@ -202,7 +170,7 @@ type ErrorDetail = {
 401 Unauthorized    Missing/invalid auth token
 403 Forbidden       Valid auth, insufficient permissions
 404 Not Found       Resource doesn't exist
-409 Conflict        Resource conflict (duplicate, version mismatch)
+409 Conflict        Resource conflict (duplicate, version)
 422 Unprocessable   Semantic validation error
 429 Too Many Requests Rate limit exceeded
 ```
@@ -212,8 +180,9 @@ type ErrorDetail = {
 500 Internal Error  Unexpected server error
 502 Bad Gateway     Upstream service error
 503 Service Unavailable Temporary outage
-504 Gateway Timeout Upstream timeout
 ```
+
+See [HTTP Status Codes](../../references/http-status-codes.md) for detailed guide.
 
 ## Versioning
 
@@ -222,50 +191,55 @@ type ErrorDetail = {
 GET /api/v1/users
 GET /api/v2/users
 
-Pros: Clear, visible, easy to route/test
-Cons: Multiple codebases, breaks REST principles
+Pros: Clear, easy to route/test
+Cons: Multiple codebases
 ```
 
-### Header Versioning
-```
-GET /api/users
-Accept: application/vnd.myapp.v2+json
-
-Pros: Same URL, follows REST, clean URLs
-Cons: Less visible, harder to test manually
-```
-
-### Breaking vs Non-Breaking Changes
+### Breaking vs Non-Breaking
 
 **Non-Breaking (same version):**
-- Adding optional request fields
+- Adding optional fields
 - Adding response fields
 - Adding new endpoints
-- Making required fields optional
 
-**Breaking (new version required):**
+**Breaking (new version):**
 - Removing fields
 - Renaming fields
 - Changing field types
 - Making optional fields required
-- Changing endpoint URLs
-- Changing response structure
 
 ## Pagination
+
+### Offset-Based (Simpler)
+```typescript
+type OffsetPaginationQuery = {
+  page?: number;    // 1-indexed
+  limit?: number;
+};
+
+// Request
+GET /api/users?page=2&limit=20
+
+// Response
+{
+  "data": [/* users */],
+  "pagination": {
+    "page": 2,
+    "limit": 20,
+    "total": 150,
+    "totalPages": 8
+  }
+}
+```
+
+**Pros**: Simple, can jump to page
+**Cons**: Inefficient for large offsets
 
 ### Cursor-Based (Large Datasets)
 ```typescript
 type CursorPaginationQuery = {
-  limit?: number;      // Default 20, max 100
-  cursor?: string;     // Opaque cursor
-};
-
-type CursorPaginationResponse<T> = {
-  data: T[];
-  pagination: {
-    nextCursor?: string;
-    hasMore: boolean;
-  };
+  limit?: number;
+  cursor?: string;  // Opaque cursor
 };
 
 // Request
@@ -281,29 +255,8 @@ GET /api/users?limit=20&cursor=eyJpZCI6MTIzfQ
 }
 ```
 
-**Pros**: Efficient, handles concurrent changes, no skipped/duplicate results
-**Cons**: Can't jump to arbitrary page, complex implementation
-
-### Offset-Based (Simpler)
-```typescript
-type OffsetPaginationQuery = {
-  page?: number;    // 1-indexed
-  limit?: number;
-};
-
-type OffsetPaginationResponse<T> = {
-  data: T[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-};
-```
-
-**Pros**: Simple, can jump to page, shows total count
-**Cons**: Inefficient for large offsets, inconsistent with concurrent changes
+**Pros**: Efficient, handles concurrent changes
+**Cons**: Can't jump to arbitrary page
 
 ## Filtering, Sorting, Search
 
@@ -313,13 +266,9 @@ GET /api/users?status=active&role=admin
 
 // Sorting
 GET /api/users?sort=createdAt&order=desc
-GET /api/users?sort=-createdAt  // Alternative
 
 // Search
 GET /api/users?search=john
-
-// Field selection
-GET /api/users?fields=id,name,email
 
 // Combined
 GET /api/users?status=active&search=john&sort=-createdAt&limit=50
@@ -333,11 +282,10 @@ const ListUsersQuerySchema = z.object({
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(20),
-  fields: z.string().optional().transform(val => val?.split(',')),
 });
 ```
 
-## Authentication & Authorization
+## Authentication
 
 ### Bearer Token (Recommended)
 ```
@@ -372,7 +320,7 @@ Retry-After: 60
 {
   "error": {
     "code": "RATE_LIMIT_EXCEEDED",
-    "message": "API rate limit exceeded. Try again in 60 seconds.",
+    "message": "Try again in 60 seconds",
     "retryAfter": 60
   }
 }
@@ -387,7 +335,7 @@ import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 const CreateUserSchema = z.object({
   email: z.string().email().max(255),
   name: z.string().min(1).max(100),
-  role: z.enum(["user", "admin", "moderator"]),
+  role: z.enum(["user", "admin"]),
 });
 
 export const createUserHandler = async (
@@ -464,3 +412,4 @@ export const createUserHandler = async (
 - [Database Design](database-design.md)
 - [Lambda Patterns](lambda-patterns.md)
 - [Security Patterns](../security/authentication.md)
+- [HTTP Status Codes](../../references/http-status-codes.md)
