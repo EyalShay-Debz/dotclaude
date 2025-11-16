@@ -27,13 +27,11 @@ afterAll(() => server.close());
 describe('UserProfile', () => {
   it('should fetch and display user data', async () => {
     render(<UserProfile userId="123" />);
-
     const name = await screen.findByText('John Doe');
     expect(name).toBeInTheDocument();
   });
 
   it('should handle API errors', async () => {
-    // Override handler for this test
     server.use(
       rest.get('/api/users/:id', (req, res, ctx) => {
         return res(ctx.status(500), ctx.json({ error: 'Server error' }));
@@ -41,7 +39,6 @@ describe('UserProfile', () => {
     );
 
     render(<UserProfile userId="123" />);
-
     const error = await screen.findByText('Failed to load user');
     expect(error).toBeInTheDocument();
   });
@@ -123,13 +120,11 @@ describe('Dashboard', () => {
   it('should show user name when logged in', () => {
     const user = { id: '1', name: 'John Doe', email: 'john@example.com' };
     renderWithAuth(<Dashboard />, user);
-
     expect(screen.getByText('Welcome, John Doe')).toBeInTheDocument();
   });
 
   it('should redirect when not logged in', () => {
     renderWithAuth(<Dashboard />, null);
-
     expect(screen.getByText('Please sign in')).toBeInTheDocument();
   });
 });
@@ -176,28 +171,9 @@ describe('ProductCard', () => {
   it('should show out of stock message', () => {
     const product = getMockProduct({ inStock: false });
     render(<ProductCard product={product} />);
-
     expect(screen.getByText('Out of stock')).toBeInTheDocument();
   });
 });
-
-// Nested factories
-function getMockAddress(overrides?: Partial<Address>): Address {
-  return {
-    street: '123 Main St',
-    city: 'Springfield',
-    state: 'IL',
-    zip: '62701',
-    ...overrides
-  };
-}
-
-function getMockUserWithAddress(overrides?: Partial<User>): User {
-  return getMockUser({
-    address: getMockAddress(),
-    ...overrides
-  });
-}
 ```
 
 **Factory best practices:**
@@ -355,51 +331,15 @@ describe('AutoSave', () => {
 
     await userEvent.type(screen.getByLabelText('Content'), 'Hello');
 
-    // Fast-forward 500ms - should not save yet
     act(() => {
       jest.advanceTimersByTime(500);
     });
     expect(onSave).not.toHaveBeenCalled();
 
-    // Fast-forward another 500ms - should save now
     act(() => {
       jest.advanceTimersByTime(500);
     });
     expect(onSave).toHaveBeenCalledWith('Hello');
-  });
-});
-```
-
----
-
-## Mock Fetch
-
-```typescript
-global.fetch = jest.fn();
-
-describe('DataFetcher', () => {
-  beforeEach(() => {
-    (fetch as jest.Mock).mockClear();
-  });
-
-  it('should fetch data on mount', async () => {
-    (fetch as jest.Mock).mockResolvedValue({
-      ok: true,
-      json: async () => ({ data: 'test' })
-    });
-
-    render(<DataFetcher url="/api/data" />);
-
-    expect(fetch).toHaveBeenCalledWith('/api/data');
-    expect(await screen.findByText('test')).toBeInTheDocument();
-  });
-
-  it('should handle fetch errors', async () => {
-    (fetch as jest.Mock).mockRejectedValue(new Error('Network error'));
-
-    render(<DataFetcher url="/api/data" />);
-
-    expect(await screen.findByText('Failed to load')).toBeInTheDocument();
   });
 });
 ```
@@ -423,23 +363,8 @@ function renderWithRouter(
 }
 
 describe('Navigation', () => {
-  it('should navigate to profile page', async () => {
-    const mockNavigate = jest.fn();
-    jest.mock('react-router-dom', () => ({
-      ...jest.requireActual('react-router-dom'),
-      useNavigate: () => mockNavigate
-    }));
-
-    renderWithRouter(<Navigation />);
-
-    await userEvent.click(screen.getByRole('link', { name: 'Profile' }));
-
-    expect(mockNavigate).toHaveBeenCalledWith('/profile');
-  });
-
   it('should render correct page for route', () => {
     renderWithRouter(<App />, { initialEntries: ['/about'] });
-
     expect(screen.getByText('About Page')).toBeInTheDocument();
   });
 });
@@ -465,7 +390,7 @@ describe('Navigation', () => {
 **Custom utilities:**
 - `renderWithProviders` for consistent setup
 - `renderWithRouter` for route testing
-- Mock localStorage, timers, fetch as needed
+- Mock localStorage, timers as needed
 
 **Best practices:**
 - Clear mocks between tests (beforeEach)

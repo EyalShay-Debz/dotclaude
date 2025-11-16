@@ -7,39 +7,8 @@ Advanced factory patterns for complex object construction, builder patterns, and
 For objects with many optional fields or complex setup requirements.
 
 ```typescript
-// order.ts
-import { z } from 'zod';
-
-const OrderItemSchema = z.object({
-  productId: z.string(),
-  productName: z.string(),
-  quantity: z.number().int().positive(),
-  unitPrice: z.number().positive(),
-  subtotal: z.number().nonnegative()
-});
-
-const OrderSchema = z.object({
-  id: z.string().uuid(),
-  customerId: z.string(),
-  items: z.array(OrderItemSchema).min(1),
-  subtotal: z.number().nonnegative(),
-  tax: z.number().nonnegative(),
-  shipping: z.number().nonnegative(),
-  total: z.number().nonnegative(),
-  status: z.enum(['pending', 'paid', 'shipped', 'delivered', 'cancelled']),
-  createdAt: z.date()
-});
-
-type OrderItem = z.infer<typeof OrderItemSchema>;
-type Order = z.infer<typeof OrderSchema>;
-
-export { OrderSchema, OrderItemSchema };
-export type { Order, OrderItem };
-```
-
-```typescript
 // order.test-factory.ts
-import { type Order, type OrderItem, OrderSchema, OrderItemSchema } from './order';
+import { type Order, OrderSchema } from './order';
 
 class TestOrderBuilder {
   private order: Partial<Order> = {
@@ -66,17 +35,8 @@ class TestOrderBuilder {
 
   withItem(productId: string, productName: string, quantity: number, unitPrice: number): this {
     const subtotal = quantity * unitPrice;
-    const item: OrderItem = {
-      productId,
-      productName,
-      quantity,
-      unitPrice,
-      subtotal
-    };
-
-    const validated = OrderItemSchema.parse(item);
-    this.order.items = [...(this.order.items || []), validated];
-
+    const item = { productId, productName, quantity, unitPrice, subtotal };
+    this.order.items = [...(this.order.items || []), item];
     return this;
   }
 
@@ -106,10 +66,8 @@ class TestOrderBuilder {
   }
 
   build(): Order {
-    // Calculate totals before building
     this.order.subtotal = this.calculateSubtotal();
     this.order.total = this.calculateTotal();
-
     return OrderSchema.parse(this.order as Order);
   }
 }
@@ -119,7 +77,6 @@ const createTestOrderBuilder = (): TestOrderBuilder => new TestOrderBuilder();
 const createTestOrder = (builderFn?: (builder: TestOrderBuilder) => TestOrderBuilder): Order => {
   const builder = createTestOrderBuilder()
     .withItem('prod-1', 'Default Product', 1, 10.00);
-
   const configured = builderFn ? builderFn(builder) : builder;
   return configured.build();
 };
@@ -127,68 +84,17 @@ const createTestOrder = (builderFn?: (builder: TestOrderBuilder) => TestOrderBui
 export { createTestOrderBuilder, createTestOrder };
 ```
 
+**Usage:**
 ```typescript
-// order.test.ts
-import { describe, it, expect } from 'vitest';
-import { createTestOrder, createTestOrderBuilder } from './order.test-factory';
-
-describe('Order Factory', () => {
-  it('should create order with single default item', () => {
-    const order = createTestOrder();
-
-    expect(order.items).toHaveLength(1);
-    expect(order.subtotal).toBe(10.00);
-  });
-
-  it('should create order with multiple items', () => {
-    const order = createTestOrder(builder =>
-      builder
-        .withItem('prod-1', 'Product 1', 2, 10.00)
-        .withItem('prod-2', 'Product 2', 1, 25.00)
-    );
-
-    expect(order.items).toHaveLength(2);
-    expect(order.subtotal).toBe(45.00);
-  });
-
-  it('should calculate tax and shipping', () => {
-    const order = createTestOrder(builder =>
-      builder
-        .withItem('prod-1', 'Product', 2, 10.00)
-        .withTaxRate(0.08)
-        .withShipping(5.00)
-    );
-
-    expect(order.subtotal).toBe(20.00);
-    expect(order.tax).toBe(1.60);
-    expect(order.shipping).toBe(5.00);
-    expect(order.total).toBe(26.60);
-  });
-
-  it('should use builder directly for complex setup', () => {
-    const order = createTestOrderBuilder()
-      .withCustomerId('cust-premium')
-      .withItem('prod-1', 'Widget', 3, 15.00)
-      .withItem('prod-2', 'Gadget', 1, 50.00)
-      .withTaxRate(0.10)
-      .withShipping(10.00)
-      .withStatus('paid')
-      .build();
-
-    expect(order.customerId).toBe('cust-premium');
-    expect(order.items).toHaveLength(2);
-    expect(order.subtotal).toBe(95.00);
-    expect(order.tax).toBe(9.50);
-    expect(order.total).toBe(114.50);
-  });
-});
+const order = createTestOrder(builder =>
+  builder
+    .withItem('prod-1', 'Widget', 3, 15.00)
+    .withItem('prod-2', 'Gadget', 1, 50.00)
+    .withTaxRate(0.10)
+    .withShipping(10.00)
+    .withStatus('paid')
+);
 ```
-
-**Key Benefits:**
-- Fluent API for complex object construction
-- Automatic calculation of derived fields
-- Type-safe chaining
-- Readable test setup
 
 **When to Use Builder Pattern:**
 - Objects with many optional fields (5+)
@@ -244,30 +150,22 @@ const createTestOrganization = (overrides?: OrgOverrides): Organization => {
 export { createTestTeam, createTestOrganization };
 ```
 
+**Usage:**
 ```typescript
-// organization.test.ts
-describe('Organization Factory', () => {
-  it('should create organization with custom teams', () => {
-    const admin = createTestUser({ role: 'admin', username: 'cto' });
-    const engineers = [
-      createTestUser({ username: 'dev1' }),
-      createTestUser({ username: 'dev2' })
-    ];
+const admin = createTestUser({ role: 'admin', username: 'cto' });
+const engineers = [
+  createTestUser({ username: 'dev1' }),
+  createTestUser({ username: 'dev2' })
+];
 
-    const org = createTestOrganization({
-      name: 'Tech Startup',
-      teams: [
-        createTestTeam({
-          name: 'Engineering',
-          members: [admin, ...engineers]
-        })
-      ]
-    });
-
-    expect(org.name).toBe('Tech Startup');
-    expect(org.teams[0].members[0].username).toBe('cto');
-    expect(org.teams[0].members).toHaveLength(3);
-  });
+const org = createTestOrganization({
+  name: 'Tech Startup',
+  teams: [
+    createTestTeam({
+      name: 'Engineering',
+      members: [admin, ...engineers]
+    })
+  ]
 });
 ```
 
@@ -312,28 +210,17 @@ const createVerifiedAdminUser = (overrides?: Partial<User>): User =>
 export { asAdmin, asInactive, withVerifiedEmail, createAdminUser, createInactiveUser };
 ```
 
+**Usage:**
 ```typescript
-// user.test.ts
-describe('User Traits', () => {
-  it('should create verified admin user', () => {
-    const user = createVerifiedAdminUser({ username: 'superadmin' });
+// Predefined compositions
+const user = createVerifiedAdminUser({ username: 'superadmin' });
 
-    expect(user.role).toBe('admin');
-    expect(user.emailVerified).toBe(true);
-    expect(user.username).toBe('superadmin');
-  });
-
-  it('should compose traits manually', () => {
-    const user = withVerifiedEmail(
-      asAdmin(
-        createTestUser({ username: 'custom' })
-      )
-    );
-
-    expect(user.role).toBe('admin');
-    expect(user.emailVerified).toBe(true);
-  });
-});
+// Manual composition
+const customUser = withVerifiedEmail(
+  asAdmin(
+    createTestUser({ username: 'custom' })
+  )
+);
 ```
 
 **Key Benefits:**
@@ -383,29 +270,19 @@ export { registry };
 import { registry } from './factory-registry';
 import { createTestUser } from './user.test-factory';
 import { createTestPost } from './post.test-factory';
-import { createTestOrder } from './order.test-factory';
 
-// Register all factories
 registry.register('user', createTestUser);
 registry.register('post', createTestPost);
-registry.register('order', createTestOrder);
 
 export { registry as factories };
 ```
 
+**Usage:**
 ```typescript
-// Usage in tests
 import { factories } from './factories';
 
-describe('Factory Registry', () => {
-  it('should create entities via registry', () => {
-    const user = factories.create('user', { username: 'testuser' });
-    const post = factories.create('post', { title: 'Test Post' });
-
-    expect(user.username).toBe('testuser');
-    expect(post.title).toBe('Test Post');
-  });
-});
+const user = factories.create('user', { username: 'testuser' });
+const post = factories.create('post', { title: 'Test Post' });
 ```
 
 **When to Use Registry:**
@@ -443,7 +320,6 @@ const generateRealisticEmail = (): string => {
 const generateUsername = (): string => {
   const firstName = firstNames[userCounter % firstNames.length];
   const number = Math.floor(userCounter / firstNames.length) + 1;
-
   return `${firstName.toLowerCase()}${number > 1 ? number : ''}`;
 };
 

@@ -47,7 +47,6 @@ app.use(
 // Set session data (login)
 app.post('/login', async (req, res) => {
   const user = await authenticateUser(req.body);
-
   if (!user) {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
@@ -55,11 +54,8 @@ app.post('/login', async (req, res) => {
   // Regenerate session ID (prevent fixation)
   req.session.regenerate(err => {
     if (err) return res.status(500).json({ error: 'Login failed' });
-
     req.session.userId = user.id;
     req.session.role = user.role;
-    req.session.createdAt = Date.now();
-
     res.json({ success: true });
   });
 });
@@ -69,7 +65,6 @@ app.get('/profile', (req, res) => {
   if (!req.session.userId) {
     return res.status(401).json({ error: 'Not authenticated' });
   }
-
   const userId = req.session.userId;
   // Fetch and return user data
 });
@@ -96,7 +91,6 @@ app.post('/login', async (req, res) => {
   // Regenerate session (new session ID)
   req.session.regenerate(err => {
     if (err) return res.status(500).json({ error: 'Login failed' });
-
     req.session.userId = user.id;
     res.json({ success: true });
   });
@@ -124,52 +118,12 @@ function checkSessionExpiry(req: Request, res: Response, next: NextFunction) {
     return;
   }
 
-  // Update last activity
   req.session.lastActivity = now;
   next();
 }
 
 app.use(checkSessionExpiry);
 ```
-
-### Bind Session to IP Address (Optional)
-
-```typescript
-// Store IP on session creation
-app.post('/login', async (req, res) => {
-  const user = await authenticateUser(req.body);
-
-  req.session.regenerate(err => {
-    if (err) return res.status(500).json({ error: 'Login failed' });
-
-    req.session.userId = user.id;
-    req.session.ipAddress = req.ip;
-
-    res.json({ success: true });
-  });
-});
-
-// Validate IP on each request
-function validateSessionIP(req: Request, res: Response, next: NextFunction) {
-  if (!req.session.userId) {
-    return next();
-  }
-
-  if (req.session.ipAddress !== req.ip) {
-    req.session.destroy(() => {
-      res.status(401).json({ error: 'Session IP mismatch' });
-    });
-    return;
-  }
-
-  next();
-}
-```
-
-**Caution**: IP binding can cause issues with:
-- Mobile users switching networks
-- Corporate proxies
-- VPNs
 
 ### Concurrent Session Limits
 
@@ -195,20 +149,7 @@ app.post('/login', async (req, res) => {
   // Create new session
   req.session.regenerate(err => {
     if (err) return res.status(500).json({ error: 'Login failed' });
-
     req.session.userId = user.id;
-
-    // Store session in database
-    db.session.create({
-      data: {
-        sessionId: req.sessionID,
-        userId: user.id,
-        ipAddress: req.ip,
-        userAgent: req.headers['user-agent'],
-        createdAt: new Date(),
-      },
-    });
-
     res.json({ success: true });
   });
 });
@@ -346,17 +287,13 @@ app.post('/login', async (req, res) => {
   if (user.mfaEnabled) {
     req.session.regenerate(err => {
       if (err) return res.status(500).json({ error: 'Login failed' });
-
-      // Partial session - not fully authenticated
       req.session.pendingUserId = user.id;
       req.session.mfaRequired = true;
-
       res.json({ mfaRequired: true });
     });
   } else {
     req.session.regenerate(err => {
       if (err) return res.status(500).json({ error: 'Login failed' });
-
       req.session.userId = user.id;
       res.json({ success: true });
     });
@@ -384,19 +321,6 @@ app.post('/mfa/verify', async (req, res) => {
 });
 ```
 
-## Session Cleanup
-
-```typescript
-// Clean up expired sessions periodically
-setInterval(async () => {
-  await db.session.deleteMany({
-    where: {
-      expiresAt: { lt: new Date() },
-    },
-  });
-}, 60 * 60 * 1000); // Every hour
-```
-
 ## Testing Sessions
 
 ```typescript
@@ -419,7 +343,6 @@ describe('Session Authentication', () => {
   test('destroys session on logout', async () => {
     const agent = request.agent(app);
     await agent.post('/login').send(credentials);
-
     await agent.post('/logout');
 
     const response = await agent.get('/profile');
@@ -428,7 +351,6 @@ describe('Session Authentication', () => {
 
   test('regenerates session ID on login', async () => {
     const agent = request.agent(app);
-
     const initialResponse = await agent.get('/');
     const initialSessionId = getCookie(initialResponse, 'connect.sid');
 
@@ -446,4 +368,3 @@ describe('Session Authentication', () => {
 
 - [JWT Patterns](./auth-jwt.md) - JWT-based authentication
 - [OAuth Patterns](./auth-oauth.md) - OAuth 2.0 flows
-- [Password Security](./password-security.md) - Password hashing and policies
