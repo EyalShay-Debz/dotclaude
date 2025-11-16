@@ -1,10 +1,9 @@
-# Refactoring Journey - From Poor to Good Code
+# Refactoring Example: User Registration
 
-This guide demonstrates progressive refactoring through multiple steps, showing WHY each change improves the code. All examples include complete, working code at each stage.
+## Overview
+Step-by-step refactoring demonstrating progressive improvement from poor to production-ready code. Each step shows complete working code with explanations of WHY the change improves design.
 
-## Example 1: User Registration Flow
-
-### Step 0: Poor Code (Starting Point)
+## Step 0: Poor Code (Starting Point)
 
 ```typescript
 // user-registration.ts - BEFORE
@@ -95,9 +94,7 @@ function sendEmail(to: string, subject: string, body: string): void {}
 - Hard to test
 - Side effects mixed with logic
 
----
-
-### Step 1: Use Schema for Validation
+## Step 1: Use Schema for Validation
 
 **Refactoring:** Replace manual validation with Zod schema validation
 
@@ -176,9 +173,7 @@ function sendEmail(to: string, subject: string, body: string): void {}
 **Why better:**
 Schema-first design centralizes validation logic, making it reusable and eliminating duplication.
 
----
-
-### Step 2: Extract Early Returns (Guard Clauses)
+## Step 2: Extract Early Returns (Guard Clauses)
 
 **Refactoring:** Move existence check earlier, use guard clause pattern
 
@@ -251,9 +246,7 @@ function sendEmail(to: string, subject: string, body: string): void {}
 **Why better:**
 Guard clauses reduce cognitive load by handling edge cases upfront, leaving the happy path unnested.
 
----
-
-### Step 3: Extract Functions (Single Responsibility)
+## Step 3: Extract Functions (Single Responsibility)
 
 **Refactoring:** Separate concerns into focused functions
 
@@ -341,9 +334,7 @@ function sendEmail(to: string, subject: string, body: string): void {}
 **Why better:**
 Single Responsibility Principle makes code easier to understand, test, and modify. Each function does one thing well.
 
----
-
-### Step 4: Dependency Injection (Testability)
+## Step 4: Dependency Injection (Testability)
 
 **Refactoring:** Inject dependencies to enable testing and flexibility
 
@@ -470,7 +461,16 @@ export { registerUser, createRegisterUser, RegisterUserInputSchema };
 export type { User, RegisterUserInput, UserRepository, PasswordHasher, EmailService, IdGenerator };
 ```
 
-**Test Example:**
+**Improvements:**
+- Fully testable without real database, email service, etc.
+- Dependencies are explicit and replaceable
+- Easy to mock in tests
+- Production and test configurations separate
+
+**Why better:**
+Dependency injection enables testing, makes dependencies explicit, and allows runtime configuration flexibility.
+
+## Test Example
 
 ```typescript
 // user-registration.test.ts
@@ -557,139 +557,15 @@ describe('User Registration', () => {
 });
 ```
 
-**Improvements:**
-- Fully testable without real database, email service, etc.
-- Dependencies are explicit and replaceable
-- Easy to mock in tests
-- Production and test configurations separate
+## Key Takeaways
 
-**Why better:**
-Dependency injection enables testing, makes dependencies explicit, and allows runtime configuration flexibility.
+1. **Schema-First Design** - Replace manual validation with schemas
+2. **Guard Clauses** - Check error conditions early and exit
+3. **Single Responsibility** - Each function does one thing
+4. **Dependency Injection** - Make dependencies explicit for testability
+5. **Incremental Refactoring** - Small steps, tests passing at each stage
 
----
-
-## Example 2: Avoiding DRY Semantic vs Structural Trap
-
-### Poor Abstraction (Over-DRY)
-
-```typescript
-// BEFORE - Structural duplication extracted (BAD)
-function processData(
-  data: unknown[],
-  validator: (item: unknown) => boolean,
-  transformer: (item: unknown) => unknown,
-  aggregator: (acc: unknown, item: unknown) => unknown,
-  initialValue: unknown
-): unknown {
-  return data
-    .filter(validator)
-    .map(transformer)
-    .reduce(aggregator, initialValue);
-}
-
-// Usage is confusing - what does this do?
-const result1 = processData(
-  orders,
-  (o: any) => o.status === 'paid',
-  (o: any) => o.total,
-  (sum: number, total: number) => sum + total,
-  0
-);
-
-const result2 = processData(
-  users,
-  (u: any) => u.isActive,
-  (u: any) => u.email,
-  (emails: string[], email: string) => [...emails, email],
-  []
-);
-```
-
-**Problems:**
-- Abstraction hides intent
-- Generic names provide no meaning
-- Hard to understand what's happening
-- Types are lost (using `unknown`)
-
----
-
-### Good Semantic Separation (AFTER)
-
-```typescript
-// AFTER - Semantic functions (GOOD)
-const OrderSchema = z.object({
-  id: z.string(),
-  status: z.enum(['pending', 'paid', 'shipped']),
-  total: z.number()
-});
-
-const UserSchema = z.object({
-  id: z.string(),
-  email: z.string().email(),
-  isActive: z.boolean()
-});
-
-type Order = z.infer<typeof OrderSchema>;
-type User = z.infer<typeof UserSchema>;
-
-// Each function has semantic meaning
-function calculatePaidOrdersTotal(orders: Order[]): number {
-  return orders
-    .filter(order => order.status === 'paid')
-    .reduce((sum, order) => sum + order.total, 0);
-}
-
-function getActiveUserEmails(users: User[]): string[] {
-  return users
-    .filter(user => user.isActive)
-    .map(user => user.email);
-}
-
-// Usage is clear - intent is obvious
-const totalRevenue = calculatePaidOrdersTotal(orders);
-const activeEmails = getActiveUserEmails(users);
-```
-
-**Improvements:**
-- Function names describe business intent
-- Types are preserved
-- Self-documenting code
-- Easy to test and modify
-
-**Why better:**
-**Semantic duplication** (doing different things that happen to look similar) should NOT be extracted. **Structural duplication** (doing the same thing multiple times) should be extracted. Know the difference.
-
----
-
-## Key Refactoring Takeaways
-
-1. **Schema-First Design:**
-   - Replace manual validation with schemas
-   - Centralize validation logic
-   - Use schema transformations for normalization
-
-2. **Guard Clauses:**
-   - Check error conditions early and exit
-   - Reduce nesting depth
-   - Make happy path obvious
-
-3. **Single Responsibility:**
-   - Each function does one thing
-   - Easier to test, understand, modify
-   - Orchestrator functions coordinate flow
-
-4. **Dependency Injection:**
-   - Make dependencies explicit
-   - Enable testing without real services
-   - Runtime configuration flexibility
-
-5. **DRY Principle:**
-   - Extract **structural** duplication (same logic repeated)
-   - Keep **semantic** duplication (different purposes, similar structure)
-   - Prioritize clarity over brevity
-
-6. **Refactoring Process:**
-   - Make small, incremental changes
-   - Keep tests passing at each step
-   - Assess value of each refactoring
-   - Stop when code is clear and maintainable
+## Related
+- [DRY Principle Examples](dry-principle-examples.md)
+- [Refactoring Patterns](../patterns/refactoring/common-patterns.md)
+- [When to Refactor](../patterns/refactoring/when-to-refactor.md)
