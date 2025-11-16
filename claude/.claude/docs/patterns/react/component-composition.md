@@ -147,57 +147,6 @@ interface ListProps<T extends HasId> {
 
 function List<T extends HasId>({ items, renderItem }: ListProps<T>) {
   return (
-    <ul>
-      {items.map((item) => (
-        <li key={item.id}>{renderItem(item)}</li>
-      ))}
-    </ul>
-  );
-}
-```
-
-## Discriminated Unions
-
-### Type-Safe Conditional Props
-
-```typescript
-type AlertProps =
-  | { variant: 'success'; message: string; onDismiss: () => void }
-  | { variant: 'error'; message: string; error: Error; onRetry: () => void }
-  | { variant: 'info'; message: string };
-
-function Alert(props: AlertProps) {
-  switch (props.variant) {
-    case 'success':
-      return (
-        <div className="alert-success" onClick={props.onDismiss}>
-          ✓ {props.message}
-        </div>
-      );
-    case 'error':
-      return (
-        <div className="alert-error" onClick={props.onRetry}>
-          ✗ {props.error.message}
-        </div>
-      );
-    case 'info':
-      return (
-        <div className="alert-info">
-          ℹ {props.message}
-        </div>
-      );
-  }
-}
-```
-
-**When to use:**
-- Props vary based on discriminator field
-- Want compile-time guarantee of correct prop combinations
-- Different variants require different callbacks or data
-
-**Real-world examples:**
-```typescript
-// Form field with conditional validation
 type FieldProps =
   | { type: 'text'; value: string; maxLength?: number }
   | { type: 'number'; value: number; min?: number; max?: number }
@@ -247,47 +196,6 @@ interface CardProps {
 function Card({ title, children }: CardProps) {
   return (
     <div className="card">
-      <h2>{title}</h2>
-      <div>{children}</div>
-    </div>
-  );
-}
-```
-
-**What ReactNode includes:**
-- JSX elements (`<div>`, `<Component />`)
-- Strings and numbers
-- Arrays of elements
-- `null`, `undefined`, `false` (renders nothing)
-- Portals
-
-### Render Props Pattern
-
-```typescript
-interface DataLoaderProps<T> {
-  url: string;
-  children: (data: T, isLoading: boolean, error: Error | null) => React.ReactNode;
-}
-
-function DataLoader<T>({ url, children }: DataLoaderProps<T>) {
-  const [data, setData] = useState<T | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    fetchData(url).then(setData).catch(setError).finally(() => setIsLoading(false));
-  }, [url]);
-
-  return <>{children(data as T, isLoading, error)}</>;
-}
-
-// Usage
-<DataLoader<User> url="/api/user">
-  {(user, isLoading, error) => {
-    if (isLoading) return <Spinner />;
-    if (error) return <ErrorMessage error={error} />;
-    return <UserProfile user={user} />;
-  }}
 </DataLoader>
 ```
 
@@ -337,47 +245,6 @@ function Form({ onSubmit, onCancel }: FormProps) {
     <form onSubmit={handleSubmit}>
       <button type="submit">Submit</button>
       <button type="button" onClick={onCancel}>Cancel</button>
-    </form>
-  );
-}
-```
-
-**Common event types:**
-- `React.MouseEvent<HTMLElement>` - Click, mouse events
-- `React.KeyboardEvent<HTMLElement>` - Key press events
-- `React.FormEvent<HTMLFormElement>` - Form submission
-- `React.ChangeEvent<HTMLInputElement>` - Input changes
-- `React.FocusEvent<HTMLElement>` - Focus/blur events
-
-### Input Change Handlers
-
-```typescript
-interface InputProps {
-  value: string;
-  onChange: (value: string) => void;
-  onBlur?: () => void;
-}
-
-function Input({ value, onChange, onBlur }: InputProps) {
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onChange(e.target.value);
-  };
-
-  return (
-    <input
-      type="text"
-      value={value}
-      onChange={handleChange}
-      onBlur={onBlur}
-    />
-  );
-}
-```
-
-**Benefits:** Parent doesn't need DOM events, cleaner API, easier to test
-
-### Generic Event Handlers
-
 ```typescript
 interface SelectProps<T> {
   value: T;
