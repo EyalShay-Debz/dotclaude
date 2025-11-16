@@ -70,133 +70,9 @@ Refactoring is OPTIONAL. If code is already clean, skip this phase. The quality-
 - Refactor in small steps with frequent test runs
 - If unsure whether to refactor → consult quality-refactoring-specialist
 
-## Complete Example Workflow
+## Complete Example: Order Processing
 
-### Scenario: Order Processing with Free Shipping
-
-**Step 1: RED - Simplest Behavior First**
-
-```typescript
-describe("Order processing", () => {
-  it("should calculate total with shipping cost", () => {
-    const order = createOrder({
-      items: [{ price: 30, quantity: 1 }],
-      shippingCost: 5.99,
-    });
-
-    const processed = processOrder(order);
-
-    expect(processed.total).toBe(35.99);
-    expect(processed.shippingCost).toBe(5.99);
-  });
-});
-```
-
-Run test → Fails with: `processOrder is not defined`
-
-**Step 2: GREEN - Minimal Implementation**
-
-```typescript
-const processOrder = (order: Order): ProcessedOrder => {
-  const itemsTotal = order.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  return {
-    ...order,
-    shippingCost: order.shippingCost,
-    total: itemsTotal + order.shippingCost,
-  };
-};
-```
-
-Run test → Passes
-
-**Step 3: RED - Add Free Shipping Behavior**
-
-```typescript
-describe("Order processing", () => {
-  it("should calculate total with shipping cost", () => {
-    // ... existing test
-  });
-
-  it("should apply free shipping for orders over £50", () => {
-    const order = createOrder({
-      items: [{ price: 60, quantity: 1 }],
-      shippingCost: 5.99,
-    });
-
-    const processed = processOrder(order);
-
-    expect(processed.shippingCost).toBe(0);
-    expect(processed.total).toBe(60);
-  });
-});
-```
-
-Run test → Fails (expected 0, got 5.99)
-
-**Step 4: GREEN - Add Conditional Logic**
-
-```typescript
-const processOrder = (order: Order): ProcessedOrder => {
-  const itemsTotal = order.items.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0
-  );
-
-  const shippingCost = itemsTotal > 50 ? 0 : order.shippingCost;
-
-  return {
-    ...order,
-    shippingCost,
-    total: itemsTotal + shippingCost,
-  };
-};
-```
-
-Run tests → All pass
-
-**Step 5: RED - Add Edge Case (Boundary Testing)**
-
-```typescript
-describe("Order processing", () => {
-  // ... existing tests
-
-  it("should charge shipping for orders exactly at £50", () => {
-    const order = createOrder({
-      items: [{ price: 50, quantity: 1 }],
-      shippingCost: 5.99,
-    });
-
-    const processed = processOrder(order);
-
-    expect(processed.shippingCost).toBe(5.99);
-    expect(processed.total).toBe(55.99);
-  });
-});
-```
-
-Run tests → All pass (edge case already handled by `>` operator)
-
-**Step 6: REFACTOR - Assess Opportunities**
-
-Invoke quality-refactoring-specialist:
-```
-Prompt: "Assess refactoring opportunities for processOrder function.
-Check for: duplication, complex conditionals, unclear naming, mixed abstractions.
-Return: either recommendations or confirmation that code is clean as-is."
-```
-
-quality-refactoring-specialist returns: "Code is clean. Single responsibility, clear logic, no duplication. No refactoring needed."
-
-**Step 7: COMMIT**
-
-```bash
-git add src/orders/payment-processor.ts src/orders/payment-processor.test.ts
-git commit -m "feat: add free shipping for orders over £50"
-```
+See @~/.claude/docs/examples/tdd-complete-cycle.md for full workflow example with order processing and free shipping.
 
 ## Quality Gates Before Commit
 
@@ -313,54 +189,13 @@ After multiple similar patterns emerge → THEN consider abstraction in refactor
 
 ### Redefining Schemas in Tests
 
-**Wrong:**
-```typescript
-// Test file redefines schema
-const PaymentSchema = z.object({
-  amount: z.number(),
-  currency: z.string(),
-});
-
-type Payment = z.infer<typeof PaymentSchema>;
-```
-
-**Why wrong:** Test schema can drift from production schema. False sense of type safety.
-
-**Right:**
-```typescript
-// Test imports real schema
-import { PaymentSchema, type Payment } from '@/schemas/payment';
-
-const mockPayment = PaymentSchema.parse({
-  amount: 100,
-  currency: 'GBP',
-});
-```
+❌ Test file redefines schema → schemas drift
+✓ Import real schemas from codebase
 
 ### 1:1 Test File to Implementation File Mapping
 
-**Wrong:**
-```
-src/
-  payment-validator.ts
-  payment-validator.test.ts
-  payment-processor.ts
-  payment-processor.test.ts
-```
-
-**Why wrong:** Tests mirror implementation structure, not user behaviors. Encourages testing internal functions.
-
-**Right:**
-```
-src/
-  features/
-    payment/
-      payment-validator.ts      // implementation detail
-      payment-processor.ts       // public API
-      payment-processor.test.ts  // tests ALL payment behaviors
-```
-
-Tests organized by feature/behavior. Internal validators tested through public API.
+❌ payment-validator.test.ts mirrors payment-validator.ts → encourages testing internals
+✓ Organize by feature/behavior, test through public API
 
 ## Agent Collaboration in TDD Cycle
 
