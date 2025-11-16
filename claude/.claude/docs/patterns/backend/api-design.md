@@ -87,47 +87,6 @@ type UserResponse = {
     "role": "user",
     "createdAt": "2025-01-15T10:30:00Z",
     "updatedAt": "2025-01-15T10:30:00Z"
-  }
-}
-```
-
-### Collection with Pagination
-```typescript
-type ListUsersResponse = {
-  data: UserResponse[];
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  links: {
-    self: string;
-    first: string;
-    last: string;
-    next?: string;
-    prev?: string;
-  };
-};
-```
-
-## Error Responses
-
-```typescript
-type ErrorResponse = {
-  error: {
-    code: string;           // Machine-readable
-    message: string;        // Human-readable
-    details?: ErrorDetail[];
-    requestId?: string;
-    timestamp: string;
-  };
-};
-
-type ErrorDetail = {
-  field?: string;
-  message: string;
-  code?: string;
 };
 ```
 
@@ -217,67 +176,6 @@ type OffsetPaginationQuery = {
   limit?: number;
 };
 
-// Request
-GET /api/users?page=2&limit=20
-
-// Response
-{
-  "data": [/* users */],
-  "pagination": {
-    "page": 2,
-    "limit": 20,
-    "total": 150,
-    "totalPages": 8
-  }
-}
-```
-
-**Pros**: Simple, can jump to page
-**Cons**: Inefficient for large offsets
-
-### Cursor-Based (Large Datasets)
-```typescript
-type CursorPaginationQuery = {
-  limit?: number;
-  cursor?: string;  // Opaque cursor
-};
-
-// Request
-GET /api/users?limit=20&cursor=eyJpZCI6MTIzfQ
-
-// Response
-{
-  "data": [/* users */],
-  "pagination": {
-    "nextCursor": "eyJpZCI6MTQzfQ",
-    "hasMore": true
-  }
-}
-```
-
-**Pros**: Efficient, handles concurrent changes
-**Cons**: Can't jump to arbitrary page
-
-## Filtering, Sorting, Search
-
-```typescript
-// Filtering
-GET /api/users?status=active&role=admin
-
-// Sorting
-GET /api/users?sort=createdAt&order=desc
-
-// Search
-GET /api/users?search=john
-
-// Combined
-GET /api/users?status=active&search=john&sort=-createdAt&limit=50
-
-// Schema
-const ListUsersQuerySchema = z.object({
-  status: z.enum(["active", "suspended"]).optional(),
-  role: z.enum(["user", "admin"]).optional(),
-  sort: z.enum(["createdAt", "name"]).default("createdAt"),
   order: z.enum(["asc", "desc"]).default("desc"),
   search: z.string().max(100).optional(),
   page: z.coerce.number().int().min(1).default(1),
@@ -327,42 +225,6 @@ Retry-After: 60
 ```
 
 ## Complete Handler Example
-
-```typescript
-import { z } from "zod";
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-
-const CreateUserSchema = z.object({
-  email: z.string().email().max(255),
-  name: z.string().min(1).max(100),
-  role: z.enum(["user", "admin"]),
-});
-
-export const createUserHandler = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-  try {
-    const body = JSON.parse(event.body || '{}');
-    const input = CreateUserSchema.parse(body);
-
-    const user = await createUser(input);
-
-    return {
-      statusCode: 201,
-      headers: {
-        'Content-Type': 'application/json',
-        'Location': `/api/users/${user.id}`,
-      },
-      body: JSON.stringify({
-        data: user,
-        links: { self: `/api/users/${user.id}` },
-      }),
-    };
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({
           error: {
             code: 'VALIDATION_ERROR',
             message: 'Request validation failed',
