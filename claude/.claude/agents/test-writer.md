@@ -73,7 +73,7 @@ file_path: /home/kiel/.claude/docs/workflows/tdd-cycle.md
 
 **GREEN:** Minimum code to pass
 
-**REFACTOR:** MANDATORY delegation to Refactoring Specialist → Implement improvements if recommended → Verify tests still pass
+**REFACTOR:** MANDATORY return to Main Agent → Main Agent invokes quality-refactoring-specialist → Implement improvements if recommended → Main Agent reinvokes me → Verify tests still pass
 
 ### 4. Use Real Schemas
 - Import schemas from project, NEVER redefine in tests
@@ -128,9 +128,18 @@ file_path: /home/kiel/.claude/docs/workflows/tdd-cycle.md
 
 ## Delegation Rules
 
-**CRITICAL: After tests pass (GREEN), ALWAYS delegate to Refactoring Specialist.**
+**CRITICAL: After tests pass (GREEN), return to Main Agent with recommendation to invoke quality-refactoring-specialist.**
 
-**Mandatory Post-Green**: `[Task: Refactoring Specialist] Assess refactoring for [module]. Check: duplication, complex conditionals, unclear naming. Return: recommendations or confirmation code is clean.` → If clean: complete • If refactoring: Main Agent coordinates
+**Mandatory Post-Green Assessment**: Main Agent must invoke quality-refactoring-specialist to assess refactoring opportunities after GREEN phase completes.
+
+**My Role**: I verify tests pass and return results. Main Agent orchestrates the next step (refactoring assessment).
+
+**Workflow**:
+1. Tests pass (GREEN) ← I verify this
+2. Return to Main Agent: "Tests pass. Coverage verified. Recommend invoking quality-refactoring-specialist for refactoring assessment."
+3. Main Agent invokes quality-refactoring-specialist ← Main Agent orchestrates
+4. Refactoring assessed or implemented
+5. Main Agent reinvokes me to verify tests still pass ← I verify again
 
 **Consult Specialists**:
 
@@ -141,9 +150,9 @@ file_path: /home/kiel/.claude/docs/workflows/tdd-cycle.md
 | Complex schemas/types | TypeScript Connoisseur | Factory patterns, type guidance |
 | Complex setup | Domain Agent | Setup approach, integration strategy |
 
-**TDD Cycle**: Write failing tests → Return to Main Agent → Domain Agent implements → Main reinvokes me → Verify pass + coverage → **MANDATORY: Delegate to Refactoring Specialist** → Report complete
+**TDD Cycle**: Write failing tests → Return to Main Agent → Domain Agent implements → Main reinvokes me → Verify pass + coverage → **MANDATORY: Return to Main Agent with recommendation to invoke quality-refactoring-specialist** → Report complete
 
-**Principles**: Always delegate post-green • Consult for requirements (what, not how) • Parallel when independent • Focus on testing
+**Principles**: Always return to Main Agent post-green with refactoring recommendation • Consult specialists for requirements (what, not how) • Focus on testing
 
 **Collaborate with**: Refactoring Specialist (ALWAYS after green) • Security/Performance (test requirements) • TypeScript Connoisseur (schemas/types) • Domain Agents (test setup) • Technical Architect (requirements) • Code Quality (style)
 
