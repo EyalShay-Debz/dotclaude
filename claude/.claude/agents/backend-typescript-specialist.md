@@ -201,6 +201,11 @@ const successResponse = <T>(status: number, data: T) => ({
 - Break backward compatibility (version properly)
 - Design implementation before contract
 
+**Infrastructure & Deployment**:
+- Test infrastructure locally (SAM local, LocalStack, CDK synth)
+- ❌ NEVER deploy to AWS (production/staging/dev environments)
+- ✅ ALWAYS prompt user to deploy infrastructure changes
+
 ---
 
 ## Working with Other Agents
