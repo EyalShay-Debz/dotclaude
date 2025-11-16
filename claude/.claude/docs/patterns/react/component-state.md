@@ -117,57 +117,6 @@ const [isOpen, setOpen] = useState(false); // boolean
 ### Explicit Type Annotation
 
 ```typescript
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
-
-// Explicit type when initial value is null
-const [user, setUser] = useState<User | null>(null);
-
-// Array state
-const [items, setItems] = useState<string[]>([]);
-
-// Complex object state
-interface FormState {
-  values: Record<string, string>;
-  errors: Record<string, string[]>;
-  isSubmitting: boolean;
-}
-
-const [form, setForm] = useState<FormState>({
-  values: {},
-  errors: {},
-  isSubmitting: false,
-});
-```
-
-### Immutable Updates
-
-```typescript
-// ✓ Correct: Create new object
-setUser(prev => ({ ...prev, name: newName }));
-
-// ✓ Correct: Create new array
-setItems(prev => [...prev, newItem]);
-setItems(prev => prev.filter(item => item.id !== deleteId));
-
-// ❌ Wrong: Mutating state
-setUser(prev => {
-  prev.name = newName; // Mutation!
-  return prev;
-});
-```
-
-## useReducer with TypeScript
-
-### Discriminated Union Actions
-
-```typescript
-type State = {
-  count: number;
-  lastAction: string;
 };
 
 type Action =
@@ -227,57 +176,6 @@ type TodoAction =
 function todoReducer(state: TodoState, action: TodoAction): TodoState {
   switch (action.type) {
     case 'add':
-      return {
-        ...state,
-        todos: [
-          ...state.todos,
-          {
-            id: crypto.randomUUID(),
-            text: action.payload.text,
-            completed: false,
-          },
-        ],
-      };
-    case 'toggle':
-      return {
-        ...state,
-        todos: state.todos.map(todo =>
-          todo.id === action.payload.id
-            ? { ...todo, completed: !todo.completed }
-            : todo
-        ),
-      };
-    case 'delete':
-      return {
-        ...state,
-        todos: state.todos.filter(todo => todo.id !== action.payload.id),
-      };
-    case 'setFilter':
-      return {
-        ...state,
-        filter: action.payload.filter,
-      };
-  }
-}
-```
-
-## Custom Hooks
-
-### Type-Safe Custom Hook
-
-```typescript
-interface UseToggleReturn {
-  isOn: boolean;
-  toggle: () => void;
-  setOn: () => void;
-  setOff: () => void;
-}
-
-function useToggle(initialValue = false): UseToggleReturn {
-  const [isOn, setIsOn] = useState(initialValue);
-
-  return {
-    isOn,
     toggle: () => setIsOn(prev => !prev),
     setOn: () => setIsOn(true),
     setOff: () => setIsOn(false),
@@ -317,57 +215,6 @@ function useLocalStorage<T>(
     }
   };
 
-  return [storedValue, setValue];
-}
-
-// Usage
-const [user, setUser] = useLocalStorage<User | null>('user', null);
-```
-
-## Context with TypeScript
-
-### Type-Safe Context
-
-```typescript
-interface AuthContextValue {
-  user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  isAuthenticated: boolean;
-}
-
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-
-  const login = async (email: string, password: string) => {
-    const user = await loginAPI(email, password);
-    setUser(user);
-  };
-
-  const logout = () => {
-    setUser(null);
-  };
-
-  return (
-    <AuthContext.Provider
-      value={{
-        user,
-        login,
-        logout,
-        isAuthenticated: user !== null,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-}
-
-// Custom hook for consuming context
-export function useAuth(): AuthContextValue {
-  const context = useContext(AuthContext);
-  if (!context) {
     throw new Error('useAuth must be used within AuthProvider');
   }
   return context;
