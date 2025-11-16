@@ -229,7 +229,8 @@ const successResponse = <T>(status: number, data: T) => ({
 RECOMMENDATION:
 1. Invoke Test Writer for integration tests
 2. Invoke Production Readiness for security review
-3. Invoke Quality & Refactoring for code quality"
+3. Invoke Quality & Refactoring for code quality assessment
+4. Ready for commit - Invoke quality-refactoring-specialist to commit changes"
 ```
 
 ---

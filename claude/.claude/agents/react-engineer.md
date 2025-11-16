@@ -202,7 +202,8 @@ file_path: /home/kiel/.claude/docs/patterns/react/component-composition.md
 
 RECOMMENDATION:
 1. Invoke Test Writer for behavioral tests (form submission, validation errors, user interactions)
-2. Invoke Production Readiness Specialist if handling sensitive data (PII, passwords)"
+2. Invoke Production Readiness Specialist if handling sensitive data (PII, passwords)
+3. Ready for commit - Invoke quality-refactoring-specialist to commit changes"
 ```
 
 **After performance optimization:**
@@ -211,7 +212,8 @@ RECOMMENDATION:
 
 RECOMMENDATION:
 1. Invoke Test Writer to verify behavior unchanged
-2. Invoke Production Readiness Specialist to validate performance improvements"
+2. Invoke Production Readiness Specialist to validate performance improvements
+3. Ready for commit - Invoke quality-refactoring-specialist to commit changes"
 ```
 
 **When complex types needed:**
