@@ -9,82 +9,40 @@ Exposure of sensitive data due to weak or missing encryption.
 
 ### Password Hashing
 
+Use bcrypt (12 rounds) or argon2. Never store plaintext.
+
 ```typescript
 import bcrypt from 'bcrypt';
-
-// Hash password (register)
 const SALT_ROUNDS = 12;
 const hashedPassword = await bcrypt.hash(plainPassword, SALT_ROUNDS);
-
-await db.user.create({
-  data: {
-    email,
-    passwordHash: hashedPassword,
-  },
-});
-
-// Verify password (login)
-const user = await db.user.findUnique({ where: { email } });
 const isValid = await bcrypt.compare(plainPassword, user.passwordHash);
-```
-
-**Argon2 (More Secure Alternative)**
-```typescript
-import argon2 from 'argon2';
-
-const hashedPassword = await argon2.hash(plainPassword);
-const isValid = await argon2.verify(hashedPassword, plainPassword);
 ```
 
 ### Data Encryption at Rest
 
+Use AES-256-GCM with unique IV per encryption. Store IV and tag with ciphertext.
+
 ```typescript
 import crypto from 'crypto';
-
 const ALGORITHM = 'aes-256-gcm';
-const KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex'); // 32 bytes
+const KEY = Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
 
 function encrypt(text: string): { encrypted: string; iv: string; tag: string } {
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(ALGORITHM, KEY, iv);
-
-  let encrypted = cipher.update(text, 'utf8', 'hex');
-  encrypted += cipher.final('hex');
-
-  return {
-    encrypted,
-    iv: iv.toString('hex'),
-    tag: cipher.getAuthTag().toString('hex'),
-  };
-}
-
-function decrypt(encrypted: string, iv: string, tag: string): string {
-  const decipher = crypto.createDecipheriv(
-    ALGORITHM,
-    KEY,
-    Buffer.from(iv, 'hex')
-  );
-  decipher.setAuthTag(Buffer.from(tag, 'hex'));
-
-  let decrypted = decipher.update(encrypted, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-
-  return decrypted;
+  let encrypted = cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
+  return { encrypted, iv: iv.toString('hex'), tag: cipher.getAuthTag().toString('hex') };
 }
 ```
 
 ### Sensitive Data in Logs
 
-```typescript
-// ❌ Vulnerable: Sensitive data in logs
-logger.error('Payment failed', { creditCard: '4111111111111111' });
+Redact passwords, tokens, credit cards, SSNs before logging.
 
-// ✓ Secure: Redact sensitive data
+```typescript
 function redactSensitiveData(data: any): any {
   const sensitiveFields = ['password', 'token', 'creditCard', 'ssn'];
-
   if (typeof data !== 'object') return data;
-
   const redacted = { ...data };
   for (const key of Object.keys(redacted)) {
     if (sensitiveFields.some(field => key.toLowerCase().includes(field))) {
@@ -93,8 +51,6 @@ function redactSensitiveData(data: any): any {
   }
   return redacted;
 }
-
-logger.error('Payment failed', redactSensitiveData({ creditCard: '****1111' }));
 ```
 
 ### Prevention
@@ -107,33 +63,15 @@ logger.error('Payment failed', redactSensitiveData({ creditCard: '****1111' }));
 
 ## A04:2021 - Insecure Design
 
-### Forgot Password Without Rate Limiting
+Rate limit forgot password (3 attempts/hour), generic response to prevent email enumeration.
 
 ```typescript
-// ❌ Vulnerable: Email enumeration
-app.post('/forgot-password', async (req, res) => {
-  const { email } = req.body;
-  await sendPasswordResetEmail(email);
-  res.json({ success: true });
-});
-
-// ✓ Secure: Rate limiting + generic response
 import rateLimit from 'express-rate-limit';
-
-const forgotPasswordLimiter = rateLimit({
-  windowMs: 60 * 60 * 1000,
-  max: 3,
-});
+const forgotPasswordLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 3 });
 
 app.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
-  const { email } = req.body;
-
-  const user = await db.user.findUnique({ where: { email } });
-  if (user) {
-    await sendPasswordResetEmail(email);
-  }
-
-  // Always return success (don't reveal if email exists)
+  const user = await db.user.findUnique({ where: { email: req.body.email } });
+  if (user) await sendPasswordResetEmail(req.body.email);
   res.json({ message: 'If account exists, reset email sent' });
 });
 ```
@@ -142,19 +80,11 @@ app.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
 
 ### Error Handling
 
-```typescript
-// ❌ Vulnerable: Exposing stack traces
-app.use((err, req, res, next) => {
-  res.status(500).json({
-    error: err.message,
-    stack: err.stack // Exposes internal structure!
-  });
-});
+Never expose stack traces in production. Generic error messages only.
 
-// ✓ Secure: Generic error in production
+```typescript
 app.use((err, req, res, next) => {
   logger.error('Unhandled error', { error: err });
-
   if (process.env.NODE_ENV === 'production') {
     res.status(500).json({ error: 'Internal server error' });
   } else {
@@ -163,35 +93,15 @@ app.use((err, req, res, next) => {
 });
 ```
 
-### Security Headers
+### Security Headers & CORS
+
+Use helmet for CSP, HSTS. Specific CORS origins only.
 
 ```typescript
 import helmet from 'helmet';
+app.use(helmet({ /* CSP, HSTS config */ }));
 
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-    },
-  },
-  hsts: {
-    maxAge: 31536000,
-    includeSubDomains: true,
-    preload: true,
-  },
-}));
-```
-
-### CORS Configuration
-
-```typescript
-// ❌ Vulnerable: CORS allow all
-app.use(cors({ origin: '*' }));
-
-// ✓ Secure: Specific origins
+// CORS: specific origins only
 app.use(cors({
   origin: ['https://myapp.com', 'https://www.myapp.com'],
   credentials: true,
@@ -200,64 +110,19 @@ app.use(cors({
 
 ## A06:2021 - Vulnerable and Outdated Components
 
-### Dependency Management
-
-```bash
-# Check for vulnerabilities
-npm audit
-
-# Fix automatically (where possible)
-npm audit fix
-
-# Use automated updates (Dependabot/Renovate)
-```
-
-**GitHub Actions Security Scan**
-```yaml
-name: Security Scan
-on: [push, pull_request]
-jobs:
-  security:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: snyk/actions/node@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-```
-
-### Best Practices
-- Monitor security advisories
-- Keep dependencies updated
-- Remove unused dependencies
-- Use lock files (package-lock.json)
-- Automated dependency updates
-- Regular security audits
+Run `npm audit` regularly. Use Dependabot/Renovate for automated updates. Monitor security advisories.
 
 ## A08:2021 - Software and Data Integrity Failures
 
 ### Webhook Signature Verification
 
-```typescript
-// ❌ Vulnerable: Trust external data
-app.post('/webhook', async (req, res) => {
-  await processWebhook(req.body); // Trust external data!
-});
+Verify HMAC signatures before processing external webhooks.
 
-// ✓ Secure: Verify signature
+```typescript
 app.post('/webhook', async (req, res) => {
   const signature = req.headers['x-signature'];
-  const payload = JSON.stringify(req.body);
-
-  const expectedSignature = crypto
-    .createHmac('sha256', WEBHOOK_SECRET)
-    .update(payload)
-    .digest('hex');
-
-  if (signature !== expectedSignature) {
-    return res.status(401).json({ error: 'Invalid signature' });
-  }
-
+  const expected = crypto.createHmac('sha256', WEBHOOK_SECRET).update(JSON.stringify(req.body)).digest('hex');
+  if (signature !== expected) return res.status(401).json({ error: 'Invalid signature' });
   await processWebhook(req.body);
   res.json({ success: true });
 });
@@ -265,20 +130,11 @@ app.post('/webhook', async (req, res) => {
 
 ### Input Validation
 
+Always validate with Zod before processing. NEVER use `eval`.
+
 ```typescript
-// ❌ Vulnerable: Deserialize untrusted data
-const userData = JSON.parse(req.body.data);
-eval(userData.code); // NEVER use eval!
-
-// ✓ Secure: Validate before deserialization
 import { z } from 'zod';
-
-const UserSchema = z.object({
-  name: z.string().max(100),
-  email: z.string().email(),
-  age: z.number().int().min(0).max(120),
-});
-
+const UserSchema = z.object({ name: z.string().max(100), email: z.string().email() });
 const userData = UserSchema.parse(req.body.data);
 ```
 
@@ -286,83 +142,24 @@ const userData = UserSchema.parse(req.body.data);
 
 ### Comprehensive Logging
 
-```typescript
-// ❌ Vulnerable: No logging
-app.post('/login', async (req, res) => {
-  const user = await authenticateUser(req.body);
-  if (!user) {
-    return res.status(401).json({ error: 'Invalid credentials' });
-  }
-  res.json({ success: true });
-});
+Log all security events (login attempts, password resets, access failures). Never log passwords/tokens/PII.
 
-// ✓ Secure: Log security events
+```typescript
 app.post('/login', async (req, res) => {
   const { email } = req.body;
-
-  logger.info('Login attempt', {
-    email,
-    ip: req.ip,
-    userAgent: req.headers['user-agent'],
-  });
-
+  logger.info('Login attempt', { email, ip: req.ip });
   const user = await authenticateUser(req.body);
-
   if (!user) {
-    logger.warn('Failed login attempt', {
-      email,
-      ip: req.ip,
-      reason: 'Invalid credentials',
-    });
+    logger.warn('Failed login', { email, ip: req.ip });
     return res.status(401).json({ error: 'Invalid credentials' });
   }
-
-  logger.info('Successful login', {
-    userId: user.id,
-    email,
-    ip: req.ip,
-  });
-
+  logger.info('Successful login', { userId: user.id, ip: req.ip });
   res.json({ success: true });
 });
 ```
 
-### What to Log
-
-**Security events:**
-- Login attempts (success/failure)
-- Password resets
-- Account changes
-- Access control failures
-- Input validation failures
-
-**DO NOT log:**
-- Passwords
-- Session tokens
-- Credit card numbers
-- API keys
-- Other sensitive data
-
-### Structured Logging
-
-```typescript
-import winston from 'winston';
-
-const logger = winston.createLogger({
-  level: 'info',
-  format: winston.format.json(),
-  transports: [
-    new winston.transports.File({ filename: 'error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'combined.log' }),
-  ],
-});
-
-if (process.env.NODE_ENV !== 'production') {
-  logger.add(new winston.transports.Console({
-    format: winston.format.simple(),
-  }));
-}
-```
+**Log:** Login attempts, password resets, account changes, access failures
+**Never log:** Passwords, tokens, credit cards, API keys, PII
 
 ## Testing Security
 
