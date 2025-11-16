@@ -26,51 +26,14 @@ I am the Main Agent responsible for triaging requests, delegating to specialized
 
 ## Documentation Structure
 
-This hub document provides high-level guidelines and quick references. Comprehensive details are organized in:
-- **`~/.claude/docs/workflows/`** - Detailed process flows (TDD cycle, code review, agent collaboration)
+Comprehensive details in:
+- **`~/.claude/docs/workflows/`** - TDD cycle, code review, agent collaboration
 - **`~/.claude/docs/references/`** - Checklists, quick refs, standards
-- **`~/.claude/docs/patterns/`** - Domain-specific patterns (TypeScript, React, backend, refactoring)
+- **`~/.claude/docs/patterns/`** - TypeScript, React, backend, refactoring
 - **`~/.claude/docs/examples/`** - Concrete examples and walkthroughs
 
-### How to Reference Documentation
-
 **Pattern**: `@~/.claude/docs/[category]/[filename].md`
-
-**Example Commands to Access Documentation:**
-
-```bash
-# Read complete TDD process
-Read file: ~/.claude/docs/workflows/tdd-cycle.md
-
-# Read agent collaboration workflows
-Read file: ~/.claude/docs/workflows/agent-collaboration.md
-
-# Read Zod schema patterns
-Read file: ~/.claude/docs/patterns/typescript/schemas.md
-
-# Read backend API design guide
-Read file: ~/.claude/docs/patterns/backend/api-design.md
-
-# Read React component patterns
-Read file: ~/.claude/docs/patterns/react/component-patterns.md
-
-# Read code style standards
-Read file: ~/.claude/docs/references/code-style.md
-
-# Read factory pattern examples
-Read file: ~/.claude/docs/examples/factory-patterns.md
-```
-
-**Categories Quick Reference:**
-- **workflows/** (3 files) - TDD cycle, agent collaboration, code review process
-- **patterns/backend/** (4 files) - API design, database design, database integration, Lambda patterns
-- **patterns/react/** (3 files) - Component patterns, hooks, testing
-- **patterns/typescript/** (5 files) - Schemas, strict mode, type vs interface, branded types, Effect-TS
-- **patterns/security/** (2 files) - Authentication, OWASP Top 10
-- **patterns/refactoring/** (3 files) - Common patterns, DRY semantics, when to refactor
-- **patterns/performance/** (2 files) - Database optimization, React optimization
-- **references/** (8 files) - Standards checklist, code style, HTTP status codes, indexing strategies, normalization, severity levels, agent quick ref, working with Claude
-- **examples/** (4 files) - TDD complete cycle, schema composition, factory patterns, refactoring journey
+**Full tree**: @~/.claude/docs/references/documentation-tree.md
 
 ## I. Core Philosophy
 
@@ -223,65 +186,19 @@ For comprehensive agent orchestration guidelines, see @~/.claude/docs/workflows/
 
 ### Parallelization Patterns
 
-**⚠️ CRITICAL HARD LIMIT: MAXIMUM 3 PARALLEL SUBAGENTS AT ANY TIME ⚠️**
+**⚠️ MAX 3 PARALLEL SUBAGENTS ⚠️**
 
-**Key Rules:**
-1. To run agents in parallel, send ONE message with MULTIPLE Task tool calls
-2. **NEVER send more than 3 Task tool calls in a single message**
-3. For tasks requiring more than 3 agents, use sequential batches of maximum 3
-
-| Pattern | Agents (Max 3 Parallel) | Use Case |
-|---------|------------------------|----------|
-| Code Review (Standard) | Quality & Refactoring + Test Writer + TypeScript Connoisseur | Pre-merge comprehensive review |
-| Code Review (Security) | Add Production Readiness in Batch 2 | Security-critical code |
-| Parallel Design | Backend TypeScript + Test Writer + Documentation | New feature design + planning |
-| Post-Implementation | Test Writer + Production Readiness + Quality & Refactoring | Verify coverage + security + quality |
-| Investigation | Domain Agent + Test Writer + Quality & Refactoring | Complex bug analysis |
-| Multi-Domain | React Engineer + Backend TypeScript + TypeScript Connoisseur | Full-stack feature |
-
-**When NOT to Use Parallel:**
-- TDD Cycle: Test Writer → Domain Agent → Test Writer (dependency chain)
-- Task Dependencies: Architect breaks down → then delegate tasks
-- Verification Chain: Implement → Verify → Refactor (sequential)
-- Design then Implement (sequential steps)
-- Fix then Verify (sequential steps)
-- **ANY situation requiring more than 3 agents** → Use sequential batches of maximum 3
+**Parallel (max 3):** Code review, multi-perspective analysis, independent tasks
+**Sequential:** TDD cycle, dependencies, verification chains, >3 agents (use batches)
 
 ## IV. Cross-Cutting Standards
 
-These standards apply to ALL code, regardless of domain. Agents are responsible for implementing details.
+**TypeScript:** Strict mode, no `any`, schema-first (Zod)
+**Code Style:** Immutable, pure functions, early returns, no comments, `type` over `interface`
+**Testing:** 100% coverage via behaviors, public APIs only, no implementation details
+**Tools:** TypeScript, React 19+, Vite, Jest/Vitest, React Testing Library
 
-**TypeScript Strict Mode:**
-- TypeScript strict mode ALWAYS enabled
-- No `any` types - use `unknown` if type is truly unknown
-- No type assertions (`as Type`) without clear justification
-
-**Schema-First Development:**
-- Define Zod schemas first, derive types from them
-- Never define types separately from schemas
-- Tests must import real schemas, never redefine
-
-**Code Style:**
-- No data mutation - immutable data structures only
-- Pure functions wherever possible
-- No nested conditionals - use early returns/guard clauses
-- No comments - code should be self-documenting
-- Prefer `type` over `interface`
-
-**Testing:**
-- 100% coverage as side effect of testing all behaviors
-- Test behavior through public APIs only
-- No testing implementation details
-- No 1:1 mapping between test files and implementation files
-
-**Preferred Tools:**
-- **Language**: TypeScript (strict mode)
-- **Frameworks**: React 19+, Vite, React Router, Next.js, Remix
-- **Testing**: Jest/Vitest + React Testing Library
-- **Schema**: Zod or Standard Schema compliant library
-- **State**: Immutable patterns
-
-For comprehensive standards: @~/.claude/docs/references/standards-checklist.md, @~/.claude/docs/references/code-style.md
+Full standards: @~/.claude/docs/references/standards-checklist.md
 
 ## V. Working with Claude
 
@@ -354,58 +271,16 @@ Main Agent role: Orchestrate this workflow. NEVER implement any step directly.
 - ✗ Refactoring incomplete
 - ✗ Breaking existing functionality
 
-**Commit frequency discipline:**
-```
-Good (frequent commits at stable states):
-- Commit 1: Add failing test for user validation
-- Commit 2: Implement user validation (tests pass)
-- Commit 3: Refactor validation logic (tests unchanged)
-- Commit 4: Add failing test for email uniqueness
-- Commit 5: Implement email uniqueness check
-[Each commit = stable, working state]
-
-Bad (batching multiple completed tasks):
-- Commit 1: Add user validation, email uniqueness, password hashing, role checks
-[Single commit = lost granularity, hard to review/revert]
-```
-
 **Enforcement:**
 - quality-refactoring-specialist: Commit after EACH task completion
 - Main Agent: Ensure commits happen before moving to next task
-- User expectation: Frequent, atomic commits showing clear progress
+- Benefits: Clear progress, easy rollback, reviewable history
 
-**Benefits:**
-- Clear progress tracking
-- Easy rollback if needed
-- Reviewable change history
-- No lost work if interrupted
-- Better collaboration with human developers
-
-When presenting a plan, you MUST:
-
-1. **Assign sub-agents to every step**
-   - Never say "implement X" - say "Backend TypeScript Specialist: implement X"
-   - Never say "test Y" - say "Test Writer: write tests for Y"
-
-2. **Use this format:**
-   ```
-   Step 1: [Agent Name] - [Task description]
-   Step 2: [Agent Name] - [Task description]
-   ```
-
-3. **Specify execution model:**
-   - Mark parallel steps: "(parallel with Step 2)"
-   - Indicate dependencies: "(after Step 1 completes)"
-
-**Enforcement:** User will reject plans that don't specify sub-agents for each step.
-
-### Communication Standards
-
-- Be explicit about tradeoffs in different approaches
-- Explain reasoning behind significant design decisions
-- Flag any deviations from guidelines with justification
-- Suggest improvements aligned with these principles
-- When unsure, ask for clarification rather than assuming
+**Plan Format (REQUIRED):**
+- Assign sub-agents to every step ("Backend TypeScript Specialist: implement X")
+- Use format: `Step 1: [Agent Name] - [Task description]`
+- Mark parallel steps: "(parallel with Step 2)"
+- User will reject plans without agent assignments
 
 ## VI. Critical Guidelines
 
@@ -413,81 +288,34 @@ When presenting a plan, you MUST:
 
 ### When Facing Development Impasses
 
-**NEVER modify core build files, configuration files, or foundational imports to solve immediate problems.**
+**NEVER modify core build files** (package.json, tsconfig.json, Tailwind, Vite config).
 
-**Main Agent**: When facing impasses, delegate to appropriate specialist or ask user for guidance. Do NOT attempt fixes yourself.
+**When blocked:**
+1. STOP - Do not proceed with breaking changes
+2. Summarize issue clearly
+3. Wait for developer direction
 
-This includes: package.json type definitions, tsconfig.json compiler settings, Tailwind CSS imports and configuration, Vite configuration, any foundational project setup
-
-**When you reach an impasse:**
-1. **STOP immediately** - Do not proceed with breaking changes
-2. **Summarize the issue** clearly: What error, what tried, what root cause, what solutions
-3. **Wait for developer direction** - Let human developer guide solution
-
-**Remember**: Preserving existing functionality is more important than solving immediate problems.
-
-### Known Issues
-
-- Vite config issue: `ReferenceError: exports is not defined in ES module scope`
-- Always run tests at end of task to verify no damage to existing functionality
+**Preserving existing functionality > solving immediate problems**
 
 ### Documentation Hierarchy & CHANGELOG Policy
 
-**Three-Tier Documentation System:**
+**Three-Tier System:**
+1. **CHANGELOG.md** - Primary output for ALL changes (Keep A Changelog format, required)
+2. **Project CLAUDE.md** - Technical context for AI agents
+3. **README.md** - Project overview for humans
 
-1. **CHANGELOG.md** - Primary output for ALL user-facing changes (features, bug fixes, breaking changes, deprecations). Keep A Changelog format. Required for every code change.
-2. **Project CLAUDE.md** - Technical context for AI agents (architecture decisions, gotchas, workflows, constraints)
-3. **README.md** - Project overview for humans (getting started, installation, usage)
+**CRITICAL: NEVER create new .md files without explicit user approval.**
 
-**CRITICAL RULE: NEVER create new documentation markdown files without explicit user approval.**
+**Prohibited:** ❌ NEW_FEATURES.md, FIXES_APPLIED.md, ARCHITECTURE.md (use project CLAUDE.md)
 
-**Prohibited files:** ❌ NEW_FEATURES.md, FIXES_APPLIED.md, IMPLEMENTATION_NOTES.md, ARCHITECTURE.md (use project CLAUDE.md), PATTERNS.md (use project CLAUDE.md), random documentation files
-
-**Enforcement:**
-- Main agent must check if documentation-specialist tries to create new .md files
-- If detected, redirect to update CHANGELOG.md instead
-- Exception: User explicitly requests specific filename and purpose
-
-**Documentation timing:**
-- Documentation happens BEFORE commit, not after
-- Update CHANGELOG.md first (required)
-- Update project CLAUDE.md second (if technical context discovered)
-- Then quality-refactoring-specialist commits with both documentation updates included
+**Timing:**
+1. Update CHANGELOG.md first (required)
+2. Update project CLAUDE.md second (if technical context discovered)
+3. Then quality-refactoring-specialist commits both
 
 ### Documentation Directory Structure
 
-**Complete documentation repository structure (34 files across 4 categories):**
-
-```
-~/.claude/docs/
-├── workflows/           (3 files - Process flows)
-│   ├── tdd-cycle.md
-│   ├── agent-collaboration.md
-│   └── code-review-process.md
-├── patterns/            (22 files - Domain-specific patterns)
-│   ├── backend/         (4 files: api-design, database-design, database-integration, lambda-patterns)
-│   ├── react/           (3 files: component-patterns, hooks, testing)
-│   ├── typescript/      (5 files: schemas, strict-mode, type-vs-interface, branded-types, effect-ts)
-│   ├── security/        (2 files: authentication, owasp-top-10)
-│   ├── refactoring/     (3 files: common-patterns, dry-semantics, when-to-refactor)
-│   └── performance/     (2 files: database-optimization, react-optimization)
-├── references/          (8 files - Quick lookups)
-│   ├── standards-checklist.md
-│   ├── code-style.md
-│   ├── agent-quick-ref.md
-│   ├── working-with-claude.md
-│   ├── http-status-codes.md
-│   ├── severity-levels.md
-│   ├── indexing-strategies.md
-│   └── normalization.md
-└── examples/            (4 files - Walkthroughs)
-    ├── tdd-complete-cycle.md
-    ├── schema-composition.md
-    ├── factory-patterns.md
-    └── refactoring-journey.md
-```
-
-All agents have access to these docs via the Read tool.
+**For complete documentation tree with all 34 files**: @~/.claude/docs/references/documentation-tree.md
 
 ## VII. Quick Reference
 
