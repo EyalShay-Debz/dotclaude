@@ -322,6 +322,8 @@ Before creating commit, verify:
 - ✓ No secrets committed
 - ✓ All tests pass
 - ✓ Linting passes
+- ✓ CHANGELOG.md updated (if user-facing change: features, fixes, breaking changes)
+- ✓ Project CLAUDE.md updated (if technical learnings or architecture decisions discovered)
 - ✓ Up-to-date with main (no conflicts)
 
 ---
