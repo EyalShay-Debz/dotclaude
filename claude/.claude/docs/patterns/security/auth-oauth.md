@@ -114,7 +114,6 @@ const result = await oauth2.getToken({
 **Why PKCE:**
 - Prevents authorization code interception attacks
 - Required for public clients (SPAs, mobile apps)
-- Recommended even for confidential clients
 
 ## Multi-Provider OAuth
 
@@ -394,9 +393,3 @@ describe('OAuth Authentication', () => {
   });
 });
 ```
-
-## Related
-
-- [JWT Patterns](./auth-jwt.md) - JWT-based authentication
-- [Session Management](./auth-sessions.md) - Server-side sessions
-- [OWASP Authentication](./owasp-auth.md) - Authentication security

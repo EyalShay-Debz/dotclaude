@@ -180,9 +180,6 @@ describe('ProductCard', () => {
 - Use partial overrides for flexibility
 - Provide sensible defaults
 - Compose factories for nested structures
-- Validate with schemas if using Zod
-
-See also: @~/.claude/docs/examples/factory-basics.md for comprehensive factory patterns
 
 ---
 
@@ -397,8 +394,3 @@ describe('Navigation', () => {
 - Use MSW for HTTP mocking (avoid mocking fetch directly)
 - Create factories for complex test data
 - Custom render functions reduce boilerplate
-
-See also:
-- @~/.claude/docs/patterns/react/testing-queries.md for query fundamentals
-- @~/.claude/docs/patterns/react/testing-patterns.md for common patterns
-- @~/.claude/docs/examples/factory-basics.md for factory patterns
