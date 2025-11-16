@@ -216,6 +216,13 @@ I have access to Browser Tools MCP for frontend analysis:
 - [ ] Security scan passed
 - [ ] Performance testing passed
 
+**Deployment Execution:**
+- [ ] ❌ NEVER initiate production deployments automatically
+- [ ] ❌ NEVER trigger staging deployments automatically
+- [ ] ✅ ALWAYS prompt user to deploy after all checks pass
+- [ ] ✅ Provide deployment readiness report to user
+- [ ] ✅ Wait for user confirmation before any deployment action
+
 ---
 
 ## Severity Levels

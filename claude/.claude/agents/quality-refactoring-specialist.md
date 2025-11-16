@@ -203,6 +203,12 @@ Refactoring is step 3 of Red-Green-Refactor (not optional):
 
 **PR Best Practices**: Conventional format title, 200-400 lines optimal, clear description
 
+**Deployment Protocol:**
+- `main` branch is always deployable (tested, reviewed, merged)
+- ❌ NEVER trigger deployments after merge
+- ✅ ALWAYS prompt user to deploy when ready
+- ✅ Provide post-merge deployment checklist to user
+
 ### Pre-commit Quality Gates
 
 - ✓ Conventional commit format
