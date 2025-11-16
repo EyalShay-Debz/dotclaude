@@ -1,78 +1,50 @@
 # HTTP Status Codes Reference
 
-## Overview
-HTTP status codes indicate the outcome of HTTP requests. This reference provides practical guidance for RESTful API development.
-
 ## Quick Reference
 
 | Code | Name | Use Case |
 |------|------|----------|
+| **2xx Success** |
 | 200 | OK | Successful GET, PUT, PATCH (returns data) |
 | 201 | Created | Successful POST (resource created) |
-| 204 | No Content | Successful DELETE, PUT, PATCH (no data returned) |
+| 202 | Accepted | Async operation started |
+| 204 | No Content | Successful DELETE, PUT, PATCH (no data) |
+| 206 | Partial Content | Range request (streaming) |
+| **3xx Redirection** |
+| 301 | Moved Permanently | Permanent URL change |
+| 302 | Found | Temporary redirect (may change method) |
+| 304 | Not Modified | Cached resource still valid |
+| 307 | Temporary Redirect | Temporary redirect (preserves method) |
+| **4xx Client Errors** |
 | 400 | Bad Request | Invalid input/validation error |
 | 401 | Unauthorized | Missing or invalid authentication |
-| 403 | Forbidden | Valid auth but insufficient permissions |
+| 403 | Forbidden | Valid auth, insufficient permissions |
 | 404 | Not Found | Resource doesn't exist |
-| 409 | Conflict | Resource state conflict (e.g., duplicate) |
+| 405 | Method Not Allowed | HTTP method not supported |
+| 409 | Conflict | Resource state conflict (duplicate, version mismatch) |
+| 410 | Gone | Resource permanently deleted |
 | 422 | Unprocessable Entity | Semantic validation error |
+| 429 | Too Many Requests | Rate limit exceeded |
+| **5xx Server Errors** |
 | 500 | Internal Server Error | Unexpected server error |
-| 503 | Service Unavailable | Temporary unavailability |
+| 502 | Bad Gateway | Upstream service error |
+| 503 | Service Unavailable | Temporary unavailability (maintenance) |
+| 504 | Gateway Timeout | Upstream timeout |
 
-## 1xx Informational
-
-### 100 Continue
-Server received request headers, client should send body.
-
-**Use case**: Large file uploads with `Expect: 100-continue` header.
-
-**Example**:
-```typescript
-// Client sends headers first
-// Server responds with 100 Continue
-// Client sends body
-```
-
-**Rare in REST APIs.** Most HTTP clients handle automatically.
-
-### 101 Switching Protocols
-Switching to WebSocket or HTTP/2.
-
-**Use case**: WebSocket upgrade.
-
-```typescript
-// HTTP/1.1 101 Switching Protocols
-// Upgrade: websocket
-// Connection: Upgrade
-```
-
-## 2xx Success
+## Success Codes (2xx)
 
 ### 200 OK
-Request succeeded, response contains data.
+Successful request with response body.
 
-**Use case**:
+**Use for:**
 - GET requests returning data
 - PUT/PATCH returning updated resource
-- POST returning data (if not creating resource)
+- POST returning data (non-creation)
 
-**Examples**:
 ```typescript
-// GET /users/123
 app.get('/users/:id', async (req, res) => {
   const user = await db.user.findUnique({ where: { id: req.params.id } });
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-  res.status(200).json(user);
-});
-
-// PUT /users/123 (returning updated resource)
-app.put('/users/:id', async (req, res) => {
-  const user = await db.user.update({
-    where: { id: req.params.id },
-    data: req.body,
-  });
+  if (!user) return res.status(404).json({ error: 'User not found' });
   res.status(200).json(user);
 });
 ```
@@ -80,27 +52,22 @@ app.put('/users/:id', async (req, res) => {
 ### 201 Created
 Resource successfully created.
 
-**Requirements**:
-- Include `Location` header with new resource URL
-- Return created resource in body (optional but recommended)
+**Requirements:**
+- Include `Location` header
+- Return created resource (recommended)
 
-**Example**:
 ```typescript
 app.post('/users', async (req, res) => {
   const user = await db.user.create({ data: req.body });
-  res
-    .status(201)
-    .location(`/users/${user.id}`)
-    .json(user);
+  res.status(201).location(`/users/${user.id}`).json(user);
 });
 ```
 
 ### 202 Accepted
-Request accepted for processing, but not completed.
+Request accepted for async processing.
 
-**Use case**: Async operations (background jobs, webhooks).
+**Use for:** Background jobs, webhooks, long-running operations
 
-**Example**:
 ```typescript
 app.post('/reports/generate', async (req, res) => {
   const jobId = await queue.enqueue('generate-report', req.body);
@@ -113,128 +80,89 @@ app.post('/reports/generate', async (req, res) => {
 ```
 
 ### 204 No Content
-Request succeeded, no content to return.
+Successful request with no response body.
 
-**Use case**:
+**Use for:**
 - DELETE operations
 - PUT/PATCH when not returning updated resource
-- Actions that don't produce data
+- Actions with no data to return
 
-**Example**:
 ```typescript
 app.delete('/users/:id', async (req, res) => {
   await db.user.delete({ where: { id: req.params.id } });
   res.status(204).send();
 });
-
-app.patch('/users/:id/activate', async (req, res) => {
-  await db.user.update({
-    where: { id: req.params.id },
-    data: { status: 'active' },
-  });
-  res.status(204).send();
-});
 ```
 
 ### 206 Partial Content
-Partial GET request (range request).
+Partial response to range request.
 
-**Use case**: Large file downloads, video streaming.
+**Use for:** Video streaming, large file downloads
 
-**Example**:
 ```typescript
 app.get('/videos/:id', (req, res) => {
   const range = req.headers.range;
-  if (!range) {
-    return res.status(200).sendFile(videoPath);
-  }
-
-  const videoSize = fs.statSync(videoPath).size;
-  const [start, end] = range.replace(/bytes=/, '').split('-').map(Number);
-  const chunkSize = (end || videoSize - 1) - start + 1;
-
+  // Parse range, stream partial content
   res.status(206)
-    .header('Content-Range', `bytes ${start}-${end || videoSize - 1}/${videoSize}`)
-    .header('Accept-Ranges', 'bytes')
-    .header('Content-Length', chunkSize)
-    .header('Content-Type', 'video/mp4');
-
-  fs.createReadStream(videoPath, { start, end }).pipe(res);
+    .header('Content-Range', `bytes ${start}-${end}/${total}`)
+    .header('Accept-Ranges', 'bytes');
+  // Stream partial content
 });
 ```
 
-## 3xx Redirection
+## Redirection Codes (3xx)
 
 ### 301 Moved Permanently
-Resource permanently moved to new URL.
+Permanent URL change. Clients should update bookmarks.
 
-**Use case**: URL structure changes, API versioning.
-
-**Example**:
 ```typescript
 app.get('/api/v1/users', (req, res) => {
   res.redirect(301, '/api/v2/users');
 });
 ```
 
-### 302 Found / 307 Temporary Redirect
-Resource temporarily at different URL.
-
-**Difference**:
-- 302: May change method to GET
-- 307: Preserves method
-
-**Example**:
-```typescript
-app.post('/login', async (req, res) => {
-  const user = await authenticateUser(req.body);
-  res.redirect(307, '/dashboard'); // Maintains POST
-});
-```
+### 302 Found
+Temporary redirect, may change HTTP method to GET.
 
 ### 304 Not Modified
-Resource not modified since last request (caching).
+Cached resource still valid (conditional request).
 
-**Use case**: Conditional requests with `If-None-Match` or `If-Modified-Since`.
-
-**Example**:
 ```typescript
 app.get('/users/:id', async (req, res) => {
+  const ifNoneMatch = req.headers['if-none-match'];
   const user = await db.user.findUnique({ where: { id: req.params.id } });
-  const etag = `"${user.updatedAt.getTime()}"`;
+  const etag = generateETag(user);
 
-  if (req.headers['if-none-match'] === etag) {
-    return res.status(304).end();
+  if (ifNoneMatch === etag) {
+    return res.status(304).send();
   }
 
-  res.setHeader('ETag', etag);
-  res.status(200).json(user);
+  res.setHeader('ETag', etag).json(user);
 });
 ```
 
-## 4xx Client Errors
+### 307 Temporary Redirect
+Temporary redirect, preserves HTTP method (unlike 302).
+
+## Client Error Codes (4xx)
 
 ### 400 Bad Request
-Generic client error for invalid requests.
+Invalid request format or validation error.
 
-**Use case**:
-- Malformed JSON
-- Missing required fields
-- Invalid data types
-- General validation errors
-
-**Example**:
 ```typescript
 app.post('/users', async (req, res) => {
   try {
-    const user = UserSchema.parse(req.body); // Zod validation
-    const created = await db.user.create({ data: user });
-    res.status(201).json(created);
+    const validated = CreateUserSchema.parse(req.body);
+    const user = await db.user.create({ data: validated });
+    res.status(201).json(user);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return res.status(400).json({
-        error: 'Validation failed',
-        details: error.errors,
+        error: {
+          code: 'VALIDATION_ERROR',
+          message: 'Invalid request data',
+          details: error.errors,
+        },
       });
     }
     throw error;
@@ -243,64 +171,37 @@ app.post('/users', async (req, res) => {
 ```
 
 ### 401 Unauthorized
-Missing or invalid authentication.
+Missing or invalid authentication credentials.
 
-**Use case**:
-- No auth token provided
-- Invalid/expired token
-- Invalid credentials
-
-**Example**:
 ```typescript
-function authenticate(req: Request, res: Response, next: NextFunction) {
+app.use((req, res, next) => {
   const token = req.headers.authorization?.replace('Bearer ', '');
-
-  if (!token) {
+  if (!token || !verifyToken(token)) {
     return res.status(401).json({
-      error: 'Authentication required',
-      message: 'Please provide a valid access token',
+      error: {
+        code: 'UNAUTHORIZED',
+        message: 'Missing or invalid authentication token',
+      },
     });
   }
-
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({
-      error: 'Invalid token',
-      message: 'Token expired or invalid',
-    });
-  }
-}
+  next();
+});
 ```
 
 ### 403 Forbidden
 Valid authentication but insufficient permissions.
 
-**Use case**:
-- Role-based access control
-- Resource ownership validation
-- Feature flags
-
-**Example**:
 ```typescript
-app.delete('/posts/:id', authenticate, async (req, res) => {
-  const post = await db.post.findUnique({ where: { id: req.params.id } });
-
-  if (!post) {
-    return res.status(404).json({ error: 'Post not found' });
-  }
-
-  // Check ownership or admin role
-  if (post.authorId !== req.user.id && req.user.role !== 'admin') {
+app.delete('/users/:id', requireAuth, async (req, res) => {
+  if (req.user.role !== 'admin' && req.user.id !== req.params.id) {
     return res.status(403).json({
-      error: 'Forbidden',
-      message: 'You do not have permission to delete this post',
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Insufficient permissions to delete this user',
+      },
     });
   }
-
-  await db.post.delete({ where: { id: req.params.id } });
+  await db.user.delete({ where: { id: req.params.id } });
   res.status(204).send();
 });
 ```
@@ -308,238 +209,211 @@ app.delete('/posts/:id', authenticate, async (req, res) => {
 ### 404 Not Found
 Resource doesn't exist.
 
-**Use case**:
-- Invalid resource ID
-- Endpoint doesn't exist
-- Resource was deleted
-
-**Example**:
 ```typescript
 app.get('/users/:id', async (req, res) => {
   const user = await db.user.findUnique({ where: { id: req.params.id } });
-
   if (!user) {
     return res.status(404).json({
-      error: 'Not found',
-      message: 'User does not exist',
+      error: {
+        code: 'RESOURCE_NOT_FOUND',
+        message: 'User not found',
+      },
     });
   }
-
-  res.status(200).json(user);
+  res.json(user);
 });
 ```
 
 ### 405 Method Not Allowed
-HTTP method not supported for endpoint.
+HTTP method not supported for this endpoint.
 
-**Requirements**: Include `Allow` header with supported methods.
+**Include `Allow` header** listing supported methods.
 
-**Example**:
 ```typescript
-app.all('/users/:id', (req, res) => {
-  const allowedMethods = ['GET', 'PUT', 'DELETE'];
-
+app.all('/users/:id', (req, res, next) => {
+  const allowedMethods = ['GET', 'PUT', 'PATCH', 'DELETE'];
   if (!allowedMethods.includes(req.method)) {
-    return res
-      .status(405)
-      .header('Allow', allowedMethods.join(', '))
-      .json({
-        error: 'Method not allowed',
-        message: `${req.method} not supported for this endpoint`,
-      });
+    res.setHeader('Allow', allowedMethods.join(', '));
+    return res.status(405).json({
+      error: {
+        code: 'METHOD_NOT_ALLOWED',
+        message: `Method ${req.method} not allowed`,
+      },
+    });
   }
-
-  // Handle allowed methods
+  next();
 });
 ```
 
 ### 409 Conflict
 Request conflicts with current resource state.
 
-**Use case**:
-- Duplicate resource (unique constraint violation)
-- Concurrent modification
-- Resource state conflict
+**Use for:**
+- Duplicate resources (email already exists)
+- Version conflicts (optimistic locking)
+- Business rule violations
 
-**Example**:
 ```typescript
 app.post('/users', async (req, res) => {
-  try {
-    const user = await db.user.create({ data: req.body });
-    res.status(201).json(user);
-  } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-      return res.status(409).json({
-        error: 'Conflict',
+  const existing = await db.user.findUnique({ where: { email: req.body.email } });
+  if (existing) {
+    return res.status(409).json({
+      error: {
+        code: 'RESOURCE_CONFLICT',
         message: 'User with this email already exists',
-      });
-    }
-    throw error;
+      },
+    });
   }
+  const user = await db.user.create({ data: req.body });
+  res.status(201).json(user);
 });
 ```
 
 ### 410 Gone
-Resource permanently deleted (vs 404: never existed).
+Resource permanently deleted (different from 404).
 
-**Use case**: Soft-deleted resources, expired offers.
-
-**Example**:
 ```typescript
-app.get('/posts/:id', async (req, res) => {
-  const post = await db.post.findUnique({ where: { id: req.params.id } });
-
-  if (!post) {
-    return res.status(404).json({ error: 'Post not found' });
-  }
-
-  if (post.deletedAt) {
+app.get('/users/:id', async (req, res) => {
+  const user = await db.user.findUnique({ where: { id: req.params.id } });
+  if (user?.deletedAt) {
     return res.status(410).json({
-      error: 'Gone',
-      message: 'This post has been permanently deleted',
+      error: {
+        code: 'RESOURCE_GONE',
+        message: 'User has been permanently deleted',
+      },
     });
   }
-
-  res.status(200).json(post);
+  if (!user) {
+    return res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
+  }
+  res.json(user);
 });
 ```
 
 ### 422 Unprocessable Entity
-Semantic validation error (syntax valid, semantics invalid).
+Request format valid, but semantically incorrect.
 
-**Use case**:
-- Business rule violations
-- Invalid state transitions
-- Semantic constraints
+**Difference from 400:**
+- 400: Syntax error (malformed JSON, missing required field)
+- 422: Semantic error (valid format, violates business rules)
 
-**Example**:
 ```typescript
 app.post('/orders', async (req, res) => {
-  const { items } = req.body;
+  const order = OrderSchema.parse(req.body); // Validates format
 
-  // Syntax valid (correct JSON, types), but semantics invalid
-  if (items.length === 0) {
+  // Semantic validation
+  if (order.quantity > product.stock) {
     return res.status(422).json({
-      error: 'Unprocessable entity',
-      message: 'Order must contain at least one item',
+      error: {
+        code: 'UNPROCESSABLE_ENTITY',
+        message: 'Insufficient stock available',
+        details: [
+          {
+            field: 'quantity',
+            message: `Only ${product.stock} items available`,
+          },
+        ],
+      },
     });
   }
 
-  const product = await db.product.findUnique({ where: { id: items[0].productId } });
-
-  if (product.stock < items[0].quantity) {
-    return res.status(422).json({
-      error: 'Unprocessable entity',
-      message: 'Insufficient stock for this product',
-    });
-  }
-
-  const order = await db.order.create({ data: req.body });
-  res.status(201).json(order);
+  const created = await db.order.create({ data: order });
+  res.status(201).json(created);
 });
 ```
 
 ### 429 Too Many Requests
 Rate limit exceeded.
 
-**Requirements**: Include `Retry-After` header.
+**Include headers:**
+- `Retry-After`: Seconds until retry allowed
+- `X-RateLimit-Limit`: Total allowed requests
+- `X-RateLimit-Remaining`: Requests remaining
+- `X-RateLimit-Reset`: Unix timestamp when limit resets
 
-**Example**:
 ```typescript
-import rateLimit from 'express-rate-limit';
-
-const limiter = rateLimit({
+app.use(rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // 100 requests per window
-  standardHeaders: true, // Return rate limit info in headers
-  legacyHeaders: false,
+  max: 100,
   handler: (req, res) => {
-    res.status(429).json({
-      error: 'Too many requests',
-      message: 'Rate limit exceeded, please try again later',
-    });
+    res.status(429)
+      .setHeader('Retry-After', 60)
+      .json({
+        error: {
+          code: 'RATE_LIMIT_EXCEEDED',
+          message: 'Too many requests. Please try again in 60 seconds.',
+          retryAfter: 60,
+        },
+      });
   },
-});
-
-app.use('/api', limiter);
+}));
 ```
 
-## 5xx Server Errors
+## Server Error Codes (5xx)
 
 ### 500 Internal Server Error
-Generic server error.
+Unexpected server error.
 
-**Use case**: Unexpected errors, unhandled exceptions.
+**Best practice:** Log error details server-side, return generic message to client.
 
-**Example**:
 ```typescript
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  logger.error('Unhandled error', { error: err, path: req.path });
+app.use((err, req, res, next) => {
+  logger.error('Unhandled error', { error: err, requestId: req.id });
 
-  if (process.env.NODE_ENV === 'production') {
-    res.status(500).json({
-      error: 'Internal server error',
+  res.status(500).json({
+    error: {
+      code: 'INTERNAL_ERROR',
       message: 'An unexpected error occurred',
-    });
-  } else {
-    res.status(500).json({
-      error: 'Internal server error',
-      message: err.message,
-      stack: err.stack,
-    });
-  }
+      requestId: req.id,
+    },
+  });
 });
 ```
 
 ### 502 Bad Gateway
-Invalid response from upstream server.
+Upstream service returned invalid response.
 
-**Use case**: Proxy/gateway received invalid response.
-
-**Example**:
 ```typescript
-app.get('/external-api', async (req, res) => {
+app.get('/external-data', async (req, res) => {
   try {
     const response = await fetch('https://external-api.com/data');
-
     if (!response.ok) {
       return res.status(502).json({
-        error: 'Bad gateway',
-        message: 'Upstream service returned invalid response',
+        error: {
+          code: 'BAD_GATEWAY',
+          message: 'Upstream service error',
+        },
       });
     }
-
     const data = await response.json();
-    res.status(200).json(data);
+    res.json(data);
   } catch (error) {
     res.status(502).json({
-      error: 'Bad gateway',
-      message: 'Failed to reach upstream service',
+      error: {
+        code: 'BAD_GATEWAY',
+        message: 'Failed to communicate with upstream service',
+      },
     });
   }
 });
 ```
 
 ### 503 Service Unavailable
-Server temporarily unavailable.
+Temporary unavailability (maintenance, overload).
 
-**Use case**:
-- Maintenance mode
-- Overloaded server
-- Dependency unavailable
+**Include `Retry-After` header**.
 
-**Requirements**: Include `Retry-After` header.
-
-**Example**:
 ```typescript
 app.use((req, res, next) => {
-  if (process.env.MAINTENANCE_MODE === 'true') {
-    return res
-      .status(503)
-      .header('Retry-After', '3600') // 1 hour
+  if (isMaintenanceMode()) {
+    return res.status(503)
+      .setHeader('Retry-After', 3600) // 1 hour
       .json({
-        error: 'Service unavailable',
-        message: 'System maintenance in progress',
+        error: {
+          code: 'SERVICE_UNAVAILABLE',
+          message: 'Service temporarily unavailable for maintenance',
+          retryAfter: 3600,
+        },
       });
   }
   next();
@@ -547,143 +421,112 @@ app.use((req, res, next) => {
 ```
 
 ### 504 Gateway Timeout
-Upstream server didn't respond in time.
+Upstream service timeout.
 
-**Use case**: Timeout waiting for upstream service.
-
-**Example**:
 ```typescript
-app.get('/slow-api', async (req, res) => {
-  const timeout = setTimeout(() => {
-    res.status(504).json({
-      error: 'Gateway timeout',
-      message: 'Upstream service took too long to respond',
-    });
-  }, 10000); // 10 second timeout
-
+app.get('/slow-service', async (req, res) => {
   try {
-    const response = await fetch('https://slow-api.com/data');
-    clearTimeout(timeout);
-
-    const data = await response.json();
-    res.status(200).json(data);
-  } catch (error) {
-    clearTimeout(timeout);
-    res.status(504).json({
-      error: 'Gateway timeout',
-      message: 'Request to upstream service timed out',
+    const data = await fetch('https://slow-api.com/data', {
+      signal: AbortSignal.timeout(5000), // 5 second timeout
     });
+    res.json(data);
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      return res.status(504).json({
+        error: {
+          code: 'GATEWAY_TIMEOUT',
+          message: 'Upstream service timeout',
+        },
+      });
+    }
+    throw error;
   }
 });
 ```
 
-## Common Patterns
+## Status Code Decision Tree
 
-### 200 vs 201
-```typescript
-// 201: Resource created (POST)
-app.post('/users', async (req, res) => {
-  const user = await db.user.create({ data: req.body });
-  res.status(201).location(`/users/${user.id}`).json(user);
-});
-
-// 200: Data returned, no creation (GET, PUT, PATCH)
-app.get('/users/:id', async (req, res) => {
-  const user = await db.user.findUnique({ where: { id: req.params.id } });
-  res.status(200).json(user);
-});
+```
+Request received
+  ↓
+Authentication valid?
+  NO → 401 Unauthorized
+  YES → Continue
+  ↓
+Permissions sufficient?
+  NO → 403 Forbidden
+  YES → Continue
+  ↓
+Resource exists?
+  NO → 404 Not Found (or 410 Gone if deleted)
+  YES → Continue
+  ↓
+Request format valid?
+  NO → 400 Bad Request
+  YES → Continue
+  ↓
+Business rules satisfied?
+  NO → 422 Unprocessable Entity (or 409 Conflict)
+  YES → Continue
+  ↓
+Operation successful?
+  NO → 500 Internal Server Error (or 502/503/504 if upstream issue)
+  YES → Continue
+  ↓
+Response type:
+  - Created resource → 201 Created
+  - Updated/retrieved resource → 200 OK
+  - Deleted/no content → 204 No Content
+  - Async operation → 202 Accepted
 ```
 
-### 400 vs 422
-```typescript
-// 400: Syntactic error (invalid JSON, wrong types)
-app.post('/users', (req, res) => {
-  if (typeof req.body.email !== 'string') {
-    return res.status(400).json({ error: 'Email must be a string' });
-  }
-  // ...
-});
+## Common Mistakes
 
-// 422: Semantic error (valid syntax, invalid meaning)
-app.post('/users', (req, res) => {
-  if (!req.body.email.includes('@')) {
-    return res.status(422).json({ error: 'Email must be valid format' });
-  }
-  // ...
-});
+### Using 200 for Errors
+```typescript
+// ❌ BAD
+res.status(200).json({ success: false, error: 'User not found' });
+
+// ✓ GOOD
+res.status(404).json({ error: { code: 'NOT_FOUND', message: 'User not found' } });
 ```
 
-### 401 vs 403
+### Using 400 for Business Logic Errors
 ```typescript
-// 401: Not authenticated
-app.get('/profile', (req, res) => {
-  if (!req.headers.authorization) {
-    return res.status(401).json({ error: 'Authentication required' });
-  }
-  // ...
-});
+// ❌ BAD (use 422 for semantic errors)
+res.status(400).json({ error: 'Insufficient stock' });
 
-// 403: Authenticated but not authorized
-app.delete('/users/:id', authenticate, (req, res) => {
-  if (req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Admin access required' });
-  }
-  // ...
-});
+// ✓ GOOD
+res.status(422).json({ error: { code: 'INSUFFICIENT_STOCK', message: 'Not enough items in stock' } });
 ```
 
-### 404 vs 410
+### Returning 500 for Expected Errors
 ```typescript
-// 404: Resource never existed or doesn't exist
-app.get('/users/:id', async (req, res) => {
-  const user = await db.user.findUnique({ where: { id: req.params.id } });
-  if (!user) {
-    return res.status(404).json({ error: 'User not found' });
-  }
-  // ...
-});
+// ❌ BAD (duplicate email is expected error)
+try {
+  await db.user.create({ data: { email } });
+} catch (error) {
+  res.status(500).json({ error: 'Error creating user' });
+}
 
-// 410: Resource existed but permanently removed
-app.get('/users/:id', async (req, res) => {
-  const user = await db.user.findUnique({ where: { id: req.params.id } });
-  if (user?.deletedAt) {
-    return res.status(410).json({ error: 'User permanently deleted' });
-  }
-  // ...
-});
-```
-
-## Response Format Best Practices
-
-### Success Response
-```typescript
-// Simple data
-{ "id": "123", "name": "John Doe", "email": "john@example.com" }
-
-// Collection
-{ "items": [...], "total": 100, "page": 1, "pageSize": 20 }
-
-// Action result
-{ "success": true, "message": "User activated" }
-```
-
-### Error Response
-```typescript
-// Minimal
-{ "error": "Not found", "message": "User does not exist" }
-
-// With details
-{
-  "error": "Validation failed",
-  "message": "Request contains invalid data",
-  "details": [
-    { "field": "email", "message": "Invalid email format" },
-    { "field": "age", "message": "Must be at least 18" }
-  ]
+// ✓ GOOD
+if (await userExists(email)) {
+  return res.status(409).json({ error: { code: 'DUPLICATE_EMAIL', message: 'Email already exists' } });
 }
 ```
 
+### Confusing 401 and 403
+```typescript
+// 401: Authentication problem (who are you?)
+// Missing token, expired token, invalid credentials
+res.status(401).json({ error: 'Invalid credentials' });
+
+// 403: Authorization problem (you can't do this)
+// Valid user, but lacks permission
+res.status(403).json({ error: 'Insufficient permissions' });
+```
+
 ## Related
-- [API Design Patterns](../patterns/api/rest-design.md)
-- [Error Handling](../patterns/general/error-handling.md)
-- [Authentication](../patterns/security/authentication.md)
+- [API Design](../patterns/backend/api-design.md)
+- [Error Handling](../patterns/backend/error-handling.md)
+- [Security Patterns](../patterns/security/authentication.md)
