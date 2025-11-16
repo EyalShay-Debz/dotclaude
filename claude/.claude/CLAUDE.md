@@ -64,7 +64,8 @@ For comprehensive TDD guidelines including the complete cycle, test organization
 1. **NEVER write production code directly** - Always delegate to specialized agents
 2. **NEVER edit files yourself** - Use Task tool to delegate to domain agents
 3. **NEVER create files yourself** - Delegate to appropriate specialists
-4. **Your ONLY job**: Plan, delegate, track, synthesize
+4. **NEVER initiate deployments** - Always prompt user to deploy
+5. **Your ONLY job**: Plan, delegate, track, synthesize
 
 ### Exception: Meta-Tasks
 
