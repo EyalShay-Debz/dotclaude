@@ -13,7 +13,7 @@ Code review is not a single-agent activity. Comprehensive review requires securi
 **Scope:** General code quality, patterns, maintainability
 
 **Agents Invoked (parallel):**
-- Quality & Refactoring Specialist
+- quality-refactoring-specialist
 - Test Writer
 - TypeScript Connoisseur
 
@@ -27,8 +27,8 @@ Code review is not a single-agent activity. Comprehensive review requires securi
 **Scope:** Authentication, authorization, PII, payments, user input, API endpoints, data processing, high-traffic paths
 
 **Agents Invoked (sequential batches, max 2 parallel):**
-- **Batch 1** (parallel): Quality & Refactoring Specialist + TypeScript Connoisseur
-- **Batch 2** (parallel): Production Readiness Specialist + Test Writer
+- **Batch 1** (parallel): quality-refactoring-specialist + TypeScript Connoisseur
+- **Batch 2** (parallel): production-readiness-specialist + Test Writer
 
 **Note**: Maximum 2 agents in parallel (hard limit). For comprehensive reviews requiring 3+ agents, use sequential batches.
 
@@ -47,8 +47,8 @@ Code review is not a single-agent activity. Comprehensive review requires securi
 **Scope:** Comprehensive readiness assessment
 
 **Agents Invoked (sequential batches, max 2 parallel):**
-- **Batch 1** (parallel): Quality & Refactoring Specialist + TypeScript Connoisseur
-- **Batch 2** (parallel): Production Readiness Specialist + Test Writer
+- **Batch 1** (parallel): quality-refactoring-specialist + TypeScript Connoisseur
+- **Batch 2** (parallel): production-readiness-specialist + Test Writer
 
 **Note**: Maximum 2 agents in parallel (hard limit). For comprehensive reviews requiring 3+ agents, use sequential batches.
 
@@ -66,12 +66,12 @@ Main Agent analyzes code to determine review type:
 
 **Decision criteria:**
 ```
-Contains auth/authorization logic? → Include Production Readiness Specialist
-Handles PII/credentials/payments? → Include Production Readiness Specialist
-Processes user input? → Include Production Readiness Specialist
-API endpoint with SLA? → Include Production Readiness Specialist
-Database operations? → Include Production Readiness Specialist
-Data transformation at scale? → Include Production Readiness Specialist
+Contains auth/authorization logic? → Include production-readiness-specialist
+Handles PII/credentials/payments? → Include production-readiness-specialist
+Processes user input? → Include production-readiness-specialist
+API endpoint with SLA? → Include production-readiness-specialist
+Database operations? → Include production-readiness-specialist
+Data transformation at scale? → Include production-readiness-specialist
 
 Otherwise → Standard review
 ```
@@ -85,7 +85,7 @@ Otherwise → Standard review
 BATCH 1: [SINGLE message with TWO Task tool calls]
 
 Task 1:
-- subagent_type: "Quality & Refactoring Specialist"
+- subagent_type: "quality-refactoring-specialist"
 - description: "Code quality review"
 - prompt: "Review [files] for: immutability violations, nested conditionals, unclear naming, functional patterns, anti-patterns. Return prioritized feedback by severity."
 
@@ -107,13 +107,13 @@ Task 3:
 **Security/Performance Review Example (4 agents - uses batches):**
 ```
 BATCH 1: [SINGLE message with TWO Task tool calls]
-- Quality & Refactoring Specialist
+- quality-refactoring-specialist
 - TypeScript Connoisseur
 
 [Wait for Batch 1 completion, review findings]
 
 BATCH 2: [SINGLE message with TWO Task tool calls]
-- Production Readiness Specialist
+- production-readiness-specialist
 - Test Writer
 ```
 
@@ -197,7 +197,7 @@ Code Review: [Feature/PR Name]
 
 ## Agent Responsibilities
 
-### Quality & Refactoring Specialist
+### quality-refactoring-specialist
 
 **Reviews for:**
 - Immutability violations (mutation of data)
@@ -253,7 +253,7 @@ Issue: [type safety problem]
 Fix: [how to properly type]
 ```
 
-### Production Readiness Specialist
+### production-readiness-specialist
 
 **Reviews for:**
 - **Security concerns:**
@@ -286,7 +286,7 @@ Benchmark: [current vs expected performance] (performance issues only)
 ### Prioritization Framework
 
 **Critical Severity Assignment:**
-- Security vulnerability (any severity from Production Readiness Specialist)
+- Security vulnerability (any severity from production-readiness-specialist)
 - Performance issue causing user-facing problems (>500ms delay, blocking operations)
 - Data loss risk
 - Production outage risk
@@ -360,14 +360,14 @@ Step 1: Analyze code scope
 
 Step 2: Invoke agents in batches (max 2 parallel)
 BATCH 1: [SINGLE message, TWO Task calls]
-- Quality & Refactoring Specialist
+- quality-refactoring-specialist
 - TypeScript Connoisseur
 
 Step 3: Receive Batch 1 feedback, review findings
 
 Step 4: Invoke Batch 2
 BATCH 2: [SINGLE message, TWO Task calls]
-- Production Readiness Specialist
+- production-readiness-specialist
 - Test Writer
 
 Step 5: Receive Batch 2 feedback
@@ -393,14 +393,14 @@ Step 1: Analyze scope
 
 Step 2: Invoke agents in batches (max 2 parallel)
 BATCH 1: [SINGLE message, TWO Task calls]
-- Quality & Refactoring Specialist
+- quality-refactoring-specialist
 - TypeScript Connoisseur
 
 Step 3: Receive Batch 1 feedback, review findings
 
 Step 4: Invoke Batch 2 (comprehensive review)
 BATCH 2: [SINGLE message, TWO Task calls]
-- Production Readiness Specialist
+- production-readiness-specialist
 - Test Writer
 
 Step 5: Receive Batch 2 feedback
@@ -424,11 +424,11 @@ USER: "Fixed critical issues, re-review"
 MAIN AGENT:
 Step 1: Identify which agents reviewed affected code
 - Changed files: src/api/payment.ts
-- Original reviewers: Production Readiness Specialist, TypeScript Connoisseur
+- Original reviewers: production-readiness-specialist, TypeScript Connoisseur
 
 Step 2: Invoke ONLY affected domain agents in parallel
 [SINGLE message, TWO Task calls]
-- Production Readiness Specialist (verify fixes)
+- production-readiness-specialist (verify fixes)
 - TypeScript Connoisseur (verify type improvements)
 
 Step 3: Receive verification feedback
@@ -453,15 +453,15 @@ Step 5: Present updated status
 - [ ] TypeScript: No compiler errors, strict mode compliant
 
 **Enforcement:**
-Main Agent must verify all criteria before allowing Quality & Refactoring Specialist to merge.
+Main Agent must verify all criteria before allowing quality-refactoring-specialist to merge.
 
 ### Pre-Production Gate
 
 **Criteria:**
 - [ ] All Pre-Merge Gate criteria met
-- [ ] Production Readiness Specialist approval for security and performance-sensitive features
-- [ ] Quality & Refactoring Specialist approval: No critical maintainability issues
-- [ ] Documentation Specialist: All learnings captured in project CLAUDE.md
+- [ ] production-readiness-specialist approval for security and performance-sensitive features
+- [ ] quality-refactoring-specialist approval: No critical maintainability issues
+- [ ] documentation-specialist: All learnings captured in project CLAUDE.md
 
 **Enforcement:**
 Main Agent must verify all criteria before deployment proceeds.
@@ -472,25 +472,25 @@ Main Agent must verify all criteria before deployment proceeds.
 
 **Agent response:**
 ```
-[Production Readiness Specialist - Security] CRITICAL: Unvalidated user input in /api/payment
+[production-readiness-specialist - Security] CRITICAL: Unvalidated user input in /api/payment
 ```
 
 **Main Agent action:**
 1. Mark as 🔴 CRITICAL in synthesized feedback
 2. Block merge/deploy until fixed
-3. After fix: Re-invoke Production Readiness Specialist to verify
+3. After fix: Re-invoke production-readiness-specialist to verify
 4. Ensure Test Writer adds security tests
 
 ### Scenario: Conflicting Feedback
 
 **Agent responses:**
 ```
-[Quality & Refactoring Specialist] Extract this repeated code into shared function
-[Quality & Refactoring Specialist] (Later assessment) Duplication is acceptable here - patterns differ semantically
+[quality-refactoring-specialist] Extract this repeated code into shared function
+[quality-refactoring-specialist] (Later assessment) Duplication is acceptable here - patterns differ semantically
 ```
 
 **Main Agent action:**
-1. Recognize conflict or seek clarification from Quality & Refactoring Specialist
+1. Recognize conflict or seek clarification from quality-refactoring-specialist
 2. Analyze context (are patterns truly the same semantically?)
 3. Make judgment call based on agent's refined assessment:
    - If semantic duplication → extract shared function

@@ -30,7 +30,7 @@ This hub document provides high-level guidelines and quick references. Comprehen
 All work follows the **Red-Green-Refactor** cycle:
 - **Red**: Write failing test
 - **Green**: Minimum code to pass
-- **Refactor**: Assess and improve (see Code Quality & Refactoring Specialist agent)
+- **Refactor**: Assess and improve (see Code quality-refactoring-specialist agent)
 
 For comprehensive TDD guidelines including the complete cycle, test organization, and behavioral testing principles, see @~/.claude/docs/workflows/tdd-cycle.md
 
@@ -128,7 +128,7 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 
 **Terminal Agents** (never delegate):
 - Git & Shell Specialist
-- Documentation Specialist
+- documentation-specialist
 - TypeScript Connoisseur (rarely delegates)
 
 ### Available Specialized Agents
@@ -153,7 +153,7 @@ My primary responsibility is routing tasks to the appropriate specialized agents
 | **Bug Fixes** | Test Writer (failing test) → Domain Agent (fix) → Test Writer (verify + edge cases) → Quality & Refactoring (assess) → Documentation (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit) |
 | **Refactoring** | Quality & Refactoring (assess) → Test Writer (100% coverage check) → Domain Agent (refactor maintaining API) → Test Writer (tests pass without changes) → Quality & Refactoring (review) → Documentation (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit) |
 | **Code Review** | Batch 1: Quality & Refactoring + Test Writer, then Batch 2: TypeScript Connoisseur + Production Readiness. NEVER run >2 agents in parallel. Synthesize feedback. |
-| **Documentation** | Documentation Specialist → Domain Agent (if needed) → Quality & Refactoring (commit) |
+| **Documentation** | documentation-specialist → Domain Agent (if needed) → Quality & Refactoring (commit) |
 | **Security Review** | Production Readiness (identify) → Test Writer (security tests) → Domain Agent (fix) → Production Readiness (verify) → Documentation (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit) |
 | **Performance Optimization** | Production Readiness (profile) → Test Writer (benchmark) → Domain Agent (optimize) → Production Readiness (verify) → Test Writer (regression test) → Documentation (CHANGELOG + CLAUDE.md) → Quality & Refactoring (commit) |
 
@@ -253,7 +253,7 @@ For comprehensive standards: @~/.claude/docs/references/standards-checklist.md, 
 All code changes follow this process:
 1. **Main agent** triages and delegates to Technical Architect (if complex)
 2. **Technical Architect** breaks into tasks (if needed)
-3. For each task: **Test Writer** writes failing test → **Domain Agent** implements → **Test Writer** verifies → **Quality & Refactoring Specialist** assesses → **Documentation Specialist** updates CHANGELOG.md + project CLAUDE.md → **Quality & Refactoring Specialist** commits
+3. For each task: **Test Writer** writes failing test → **Domain Agent** implements → **Test Writer** verifies → **quality-refactoring-specialist** assesses → **documentation-specialist** updates CHANGELOG.md + project CLAUDE.md → **quality-refactoring-specialist** commits
 
 ### ⚠️ COMMIT AT EVERY STABLE STATE ⚠️
 
@@ -297,7 +297,7 @@ Bad (batching multiple completed tasks):
 ```
 
 **Enforcement:**
-- Quality & Refactoring Specialist: Commit after EACH task completion
+- quality-refactoring-specialist: Commit after EACH task completion
 - Main Agent: Ensure commits happen before moving to next task
 - User expectation: Frequent, atomic commits showing clear progress
 
@@ -367,7 +367,7 @@ This includes: package.json type definitions, tsconfig.json compiler settings, T
 **Prohibited files:** ❌ NEW_FEATURES.md, FIXES_APPLIED.md, IMPLEMENTATION_NOTES.md, ARCHITECTURE.md (use project CLAUDE.md), PATTERNS.md (use project CLAUDE.md), random documentation files
 
 **Enforcement:**
-- Main agent must check if Documentation Specialist tries to create new .md files
+- Main agent must check if documentation-specialist tries to create new .md files
 - If detected, redirect to update CHANGELOG.md instead
 - Exception: User explicitly requests specific filename and purpose
 
@@ -375,7 +375,7 @@ This includes: package.json type definitions, tsconfig.json compiler settings, T
 - Documentation happens BEFORE commit, not after
 - Update CHANGELOG.md first (required)
 - Update project CLAUDE.md second (if technical context discovered)
-- Then Quality & Refactoring Specialist commits with both documentation updates included
+- Then quality-refactoring-specialist commits with both documentation updates included
 
 ### Documentation Directory Structure
 
@@ -422,7 +422,7 @@ All agents have access to these docs via the Read tool.
 | Bug fix | Test Writer → Domain Agent | Reproduce → Fix |
 | Refactoring | Quality & Refactoring → Domain Agent | Assess → Execute |
 | Code review | Quality & Refactoring + Test Writer + TypeScript + Production Readiness (batched) | Sequential batches |
-| Documentation | Documentation Specialist | Update docs |
+| Documentation | documentation-specialist | Update docs |
 | Git operation | Quality & Refactoring | Commits, PRs |
 | Unclear requirements | Ask user | Clarify first |
 
@@ -431,13 +431,13 @@ All agents have access to these docs via the Read tool.
 - **Planning**: Technical Architect
 - **Testing**: Test Writer
 - **TypeScript**: TypeScript Connoisseur
-- **Code Quality & Refactoring**: Quality & Refactoring Specialist
-- **Security & Performance**: Production Readiness Specialist
+- **Code Quality & Refactoring**: quality-refactoring-specialist
+- **Security & Performance**: production-readiness-specialist
 - **Backend (API/DB Design + Implementation)**: Backend TypeScript Specialist
 - **Shell Scripts**: Git & Shell Specialist
 - **React**: React TypeScript Expert
-- **Docs**: Documentation Specialist
-- **Git Operations**: Quality & Refactoring Specialist
+- **Docs**: documentation-specialist
+- **Git Operations**: quality-refactoring-specialist
 
 ### Core Principles Quick Check
 

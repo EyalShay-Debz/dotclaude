@@ -55,20 +55,20 @@ The green phase is not about perfect code. It's about proving the behavior works
 **Goal:** Improve code quality while preserving behavior.
 
 **Process:**
-1. Invoke Quality & Refactoring Specialist agent to assess opportunities
+1. Invoke quality-refactoring-specialist agent to assess opportunities
 2. If improvements identified → implement refactoring
 3. Run tests continuously during refactoring
 4. If any test fails → revert and try different approach
 5. Commit when tests pass and code is clean
 
 **Key Principle:**
-Refactoring is OPTIONAL. If code is already clean, skip this phase. The Quality & Refactoring Specialist will confirm when code is good as-is.
+Refactoring is OPTIONAL. If code is already clean, skip this phase. The quality-refactoring-specialist will confirm when code is good as-is.
 
 **Critical Rules:**
 - Tests must not change (behavior remains constant)
 - All tests must pass throughout refactoring
 - Refactor in small steps with frequent test runs
-- If unsure whether to refactor → consult Quality & Refactoring Specialist
+- If unsure whether to refactor → consult quality-refactoring-specialist
 
 ## Complete Example Workflow
 
@@ -182,14 +182,14 @@ Run tests → All pass (edge case already handled by `>` operator)
 
 **Step 6: REFACTOR - Assess Opportunities**
 
-Invoke Quality & Refactoring Specialist:
+Invoke quality-refactoring-specialist:
 ```
 Prompt: "Assess refactoring opportunities for processOrder function.
 Check for: duplication, complex conditionals, unclear naming, mixed abstractions.
 Return: either recommendations or confirmation that code is clean as-is."
 ```
 
-Quality & Refactoring Specialist returns: "Code is clean. Single responsibility, clear logic, no duplication. No refactoring needed."
+quality-refactoring-specialist returns: "Code is clean. Single responsibility, clear logic, no duplication. No refactoring needed."
 
 **Step 7: COMMIT**
 
@@ -213,7 +213,7 @@ Verify ALL criteria met:
 - [ ] No comments (code is self-documenting)
 - [ ] Red-Green-Refactor cycle followed for ALL changes
 - [ ] 100% coverage achieved as side effect of testing behaviors
-- [ ] Quality & Refactoring Specialist consulted after green phase
+- [ ] quality-refactoring-specialist consulted after green phase
 - [ ] All tests pass
 
 ## Common Pitfalls
@@ -276,7 +276,7 @@ it("should decline payment when insufficient funds", () => {
 ```
 1. Write test (RED)
 2. Make test pass (GREEN)
-3. Invoke Quality & Refactoring Specialist to assess
+3. Invoke quality-refactoring-specialist to assess
 4. Refactor if valuable improvements identified
 5. Commit when clean
 ```
@@ -371,11 +371,11 @@ Main Agent
   → Test Writer (RED: write failing test)
   → Domain Agent (GREEN: implement to pass test)
   → Test Writer (verify coverage, tests pass)
-  → Quality & Refactoring Specialist (REFACTOR: assess opportunities)
+  → quality-refactoring-specialist (REFACTOR: assess opportunities)
   → Domain Agent (implement refactoring if needed)
   → Test Writer (verify tests still pass)
-  → Quality & Refactoring Specialist (commit)
-  → Documentation Specialist (capture learnings)
+  → quality-refactoring-specialist (commit)
+  → documentation-specialist (capture learnings)
 ```
 
 ### Key Agent Responsibilities
@@ -384,14 +384,14 @@ Main Agent
 - Write failing tests (RED phase)
 - Verify coverage and test passage
 - Confirm tests unchanged during refactoring
-- MANDATORY: Invoke Quality & Refactoring Specialist after GREEN
+- MANDATORY: Invoke quality-refactoring-specialist after GREEN
 
 **Domain Agent (React Engineer, Backend Developer, etc):**
 - Implement minimum code to pass (GREEN phase)
-- Execute refactoring if Quality & Refactoring Specialist recommends
+- Execute refactoring if quality-refactoring-specialist recommends
 - Never write production code without failing test first
 
-**Quality & Refactoring Specialist:**
+**quality-refactoring-specialist:**
 - Assess code quality after GREEN phase
 - Identify refactoring opportunities
 - Confirm when code is clean as-is
@@ -410,7 +410,7 @@ Before considering ANY task complete:
 - [ ] Every production code line written in response to failing test
 - [ ] RED phase: Test written first and verified to fail
 - [ ] GREEN phase: Minimum code to pass written
-- [ ] REFACTOR phase: Quality & Refactoring Specialist consulted
+- [ ] REFACTOR phase: quality-refactoring-specialist consulted
 - [ ] Tests verify behaviors through public API only
 - [ ] No implementation details tested
 - [ ] Real schemas imported from codebase (not redefined)
