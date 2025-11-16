@@ -1,6 +1,6 @@
 # Complete TDD Cycle - Order Processing Example
 
-This example demonstrates a full Test-Driven Development cycle using an order processing domain. It shows multiple iterations of Red-Green-Refactor with schema-first design, behavioral testing, and factory functions.
+Full Test-Driven Development cycle demonstrating Red-Green-Refactor with schema-first design and behavioral testing.
 
 ## Iteration 1: Creating an Order
 
@@ -12,12 +12,10 @@ import { describe, it, expect } from 'vitest';
 import { createOrder, type Order } from './order';
 
 describe('Order Processing', () => {
-  it('should create a valid order with items', () => {
+  it('should create valid order with items', () => {
     const order = createOrder({
       customerId: 'cust-123',
-      items: [
-        { productId: 'prod-1', quantity: 2, unitPrice: 10.00 }
-      ]
+      items: [{ productId: 'prod-1', quantity: 2, unitPrice: 10.00 }]
     });
 
     expect(order.id).toBeDefined();
@@ -38,7 +36,7 @@ describe('Order Processing', () => {
 // order.ts
 import { z } from 'zod';
 
-// Schema first: Define structure with Zod
+// Schema first
 const OrderItemSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().positive(),
@@ -54,7 +52,6 @@ const OrderSchema = z.object({
   createdAt: z.date()
 });
 
-// Derive types from schemas
 type OrderItem = z.infer<typeof OrderItemSchema>;
 type Order = z.infer<typeof OrderSchema>;
 
@@ -63,23 +60,19 @@ type CreateOrderInput = {
   items: OrderItem[];
 };
 
-// Factory function with minimal logic
 const createOrder = (input: CreateOrderInput): Order => {
   const total = input.items.reduce(
-    (sum, item) => sum + (item.quantity * item.unitPrice),
-    0
+    (sum, item) => sum + (item.quantity * item.unitPrice), 0
   );
 
-  const order = {
+  return OrderSchema.parse({
     id: `order-${Date.now()}`,
     customerId: input.customerId,
     items: input.items,
     status: 'pending' as const,
     total,
     createdAt: new Date()
-  };
-
-  return OrderSchema.parse(order);
+  });
 };
 
 export { createOrder, OrderSchema, OrderItemSchema };
@@ -88,59 +81,45 @@ export type { Order, OrderItem };
 
 **Run test:** ✅ Passes
 
-### Refactor: Assess Opportunities
+### Refactor: Assess
 
-**Analysis:**
-- Code is simple and clear
-- Single responsibility
-- Schema validation ensures correctness
-- No duplication or complexity
+**Analysis:** Code is simple, single responsibility, schema validates correctness.
 
-**Decision:** No refactoring needed yet - code is already clean.
+**Decision:** No refactoring needed - already clean.
 
 ---
 
-## Iteration 2: Adding Order Validation
+## Iteration 2: Validation Edge Cases
 
-### Red: Write Failing Test
+### Red: Write Failing Tests
 
 ```typescript
-// order.test.ts (add to existing describe block)
-it('should throw error for empty items array', () => {
+it('should throw for empty items', () => {
+  expect(() => createOrder({ customerId: 'cust-123', items: [] })).toThrow();
+});
+
+it('should throw for negative quantities', () => {
   expect(() =>
     createOrder({
       customerId: 'cust-123',
-      items: []
+      items: [{ productId: 'prod-1', quantity: -1, unitPrice: 10.00 }]
     })
   ).toThrow();
 });
 
-it('should throw error for negative quantities', () => {
-  expect(() =>
-    createOrder({
-      customerId: 'cust-123',
-      items: [
-        { productId: 'prod-1', quantity: -1, unitPrice: 10.00 }
-      ]
-    })
-  ).toThrow();
-});
-
-it('should throw error for invalid customer ID', () => {
+it('should throw for invalid customer ID', () => {
   expect(() =>
     createOrder({
       customerId: '',
-      items: [
-        { productId: 'prod-1', quantity: 1, unitPrice: 10.00 }
-      ]
+      items: [{ productId: 'prod-1', quantity: 1, unitPrice: 10.00 }]
     })
   ).toThrow();
 });
 ```
 
-**Run tests:** ✅ All pass - Schema already validates these cases!
+**Run tests:** ✅ All pass - Schema already validates these!
 
-**Learning:** Schema-first design caught edge cases automatically. No production code changes needed.
+**Learning:** Schema-first design caught edge cases automatically. No code changes needed.
 
 ---
 
@@ -149,368 +128,165 @@ it('should throw error for invalid customer ID', () => {
 ### Red: Write Failing Test
 
 ```typescript
-// order.test.ts (add to existing describe block)
-it('should process a pending order', () => {
+it('should process pending order', () => {
   const order = createOrder({
     customerId: 'cust-123',
-    items: [
-      { productId: 'prod-1', quantity: 1, unitPrice: 10.00 }
-    ]
+    items: [{ productId: 'prod-1', quantity: 1, unitPrice: 10.00 }]
   });
 
   const processed = processOrder(order);
 
   expect(processed.status).toBe('processing');
   expect(processed.id).toBe(order.id);
-  expect(processed.customerId).toBe(order.customerId);
 });
 
-it('should throw error when processing non-pending order', () => {
+it('should reject non-pending orders', () => {
   const order = createOrder({
     customerId: 'cust-123',
-    items: [
-      { productId: 'prod-1', quantity: 1, unitPrice: 10.00 }
-    ]
+    items: [{ productId: 'prod-1', quantity: 1, unitPrice: 10.00 }]
   });
-
   const processed = processOrder(order);
 
-  // Can't process an already processing order
   expect(() => processOrder(processed)).toThrow('Can only process pending orders');
 });
 ```
 
 **Run tests:** ❌ Fails - `processOrder` doesn't exist
 
-### Green: Minimum Code to Pass
+### Green: Minimum Code
 
 ```typescript
-// order.ts (add to existing file)
-
 const processOrder = (order: Order): Order => {
   if (order.status !== 'pending') {
     throw new Error('Can only process pending orders');
   }
 
-  const processed = {
+  return OrderSchema.parse({
     ...order,
     status: 'processing' as const
-  };
-
-  return OrderSchema.parse(processed);
+  });
 };
 
-export { createOrder, processOrder, OrderSchema, OrderItemSchema };
+export { processOrder };
 ```
 
-**Run tests:** ✅ All pass
+**Run tests:** ✅ Passes
 
-### Refactor: Assess Opportunities
-
-**Analysis:**
-- Two status transition functions will emerge (process, complete, cancel)
-- Each will have similar structure: check current status → create new order with updated status
-- Potential for duplication
-
-**Decision:** Wait until we have 3 instances (Rule of Three) before abstracting.
-
----
-
-## Iteration 4: Completing and Cancelling Orders
-
-### Red: Write Failing Tests
+### Refactor: Extract Guard Clause
 
 ```typescript
-// order.test.ts (add to existing describe block)
-it('should complete a processing order', () => {
-  const order = createOrder({
-    customerId: 'cust-123',
-    items: [
-      { productId: 'prod-1', quantity: 1, unitPrice: 10.00 }
-    ]
-  });
-
-  const processing = processOrder(order);
-  const completed = completeOrder(processing);
-
-  expect(completed.status).toBe('completed');
-  expect(completed.id).toBe(order.id);
-});
-
-it('should throw error when completing non-processing order', () => {
-  const order = createOrder({
-    customerId: 'cust-123',
-    items: [
-      { productId: 'prod-1', quantity: 1, unitPrice: 10.00 }
-    ]
-  });
-
-  expect(() => completeOrder(order)).toThrow('Can only complete processing orders');
-});
-
-it('should cancel a pending order', () => {
-  const order = createOrder({
-    customerId: 'cust-123',
-    items: [
-      { productId: 'prod-1', quantity: 1, unitPrice: 10.00 }
-    ]
-  });
-
-  const cancelled = cancelOrder(order);
-
-  expect(cancelled.status).toBe('cancelled');
-  expect(cancelled.id).toBe(order.id);
-});
-
-it('should throw error when cancelling non-pending order', () => {
-  const order = createOrder({
-    customerId: 'cust-123',
-    items: [
-      { productId: 'prod-1', quantity: 1, unitPrice: 10.00 }
-    ]
-  });
-
-  const processing = processOrder(order);
-
-  expect(() => cancelOrder(processing)).toThrow('Can only cancel pending orders');
-});
-```
-
-**Run tests:** ❌ Fails - `completeOrder` and `cancelOrder` don't exist
-
-### Green: Minimum Code to Pass
-
-```typescript
-// order.ts (add to existing file)
-
-const completeOrder = (order: Order): Order => {
-  if (order.status !== 'processing') {
-    throw new Error('Can only complete processing orders');
-  }
-
-  const completed = {
-    ...order,
-    status: 'completed' as const
-  };
-
-  return OrderSchema.parse(completed);
-};
-
-const cancelOrder = (order: Order): Order => {
+// Better: explicit guard function
+const ensurePendingStatus = (order: Order): void => {
   if (order.status !== 'pending') {
-    throw new Error('Can only cancel pending orders');
+    throw new Error('Can only process pending orders');
   }
-
-  const cancelled = {
-    ...order,
-    status: 'cancelled' as const
-  };
-
-  return OrderSchema.parse(cancelled);
 };
 
-export {
-  createOrder,
-  processOrder,
-  completeOrder,
-  cancelOrder,
-  OrderSchema,
-  OrderItemSchema
+const processOrder = (order: Order): Order => {
+  ensurePendingStatus(order);
+  return OrderSchema.parse({ ...order, status: 'processing' as const });
 };
 ```
 
-**Run tests:** ✅ All pass
-
-### Refactor: Extract Common Pattern
-
-**Analysis:**
-Now we have 3 functions with identical structure:
-1. Check if order is in expected status
-2. Create new order with updated status
-3. Validate with schema
-
-This is **structural duplication** worth removing.
-
-```typescript
-// order.ts (refactored)
-
-type OrderStatus = Order['status'];
-
-type StatusTransition = {
-  from: OrderStatus;
-  to: OrderStatus;
-  errorMessage: string;
-};
-
-const transitionOrderStatus = (
-  order: Order,
-  transition: StatusTransition
-): Order => {
-  if (order.status !== transition.from) {
-    throw new Error(transition.errorMessage);
-  }
-
-  const updated = {
-    ...order,
-    status: transition.to
-  };
-
-  return OrderSchema.parse(updated);
-};
-
-const processOrder = (order: Order): Order =>
-  transitionOrderStatus(order, {
-    from: 'pending',
-    to: 'processing',
-    errorMessage: 'Can only process pending orders'
-  });
-
-const completeOrder = (order: Order): Order =>
-  transitionOrderStatus(order, {
-    from: 'processing',
-    to: 'completed',
-    errorMessage: 'Can only complete processing orders'
-  });
-
-const cancelOrder = (order: Order): Order =>
-  transitionOrderStatus(order, {
-    from: 'pending',
-    to: 'cancelled',
-    errorMessage: 'Can only cancel pending orders'
-  });
-
-export {
-  createOrder,
-  processOrder,
-  completeOrder,
-  cancelOrder,
-  OrderSchema,
-  OrderItemSchema
-};
-export type { Order, OrderItem };
-```
-
-**Run tests:** ✅ All still pass (behavior unchanged)
-
-**Refactoring benefits:**
-- Single source of truth for status transitions
-- Easier to add new transitions
-- Consistent error handling
-- Less code to maintain
+**Tests:** ✅ Still pass (refactoring doesn't change behavior)
 
 ---
 
-## Iteration 5: Test Factories
+## Iteration 4: Applying Discounts
 
-### Refactor: Create Test Factories
-
-Our tests have duplication in order creation. Let's extract factory functions.
+### Red: Write Failing Test
 
 ```typescript
-// order.test-factory.ts
-import { type Order, type OrderItem } from './order';
+it('should apply discount to order total', () => {
+  const order = createOrder({
+    customerId: 'cust-123',
+    items: [{ productId: 'prod-1', quantity: 2, unitPrice: 50.00 }]
+  });
 
-type OrderItemOverrides = Partial<OrderItem>;
-type OrderOverrides = Partial<{
-  customerId: string;
-  items: OrderItem[];
-}>;
+  const discounted = applyDiscount(order, 0.10); // 10% discount
 
-const createTestOrderItem = (overrides?: OrderItemOverrides): OrderItem => ({
-  productId: 'prod-default',
-  quantity: 1,
-  unitPrice: 10.00,
-  ...overrides
+  expect(discounted.total).toBe(90.00);
+  expect(discounted.discount).toBe(10.00);
 });
 
-const createTestOrderInput = (overrides?: OrderOverrides) => ({
-  customerId: 'cust-default',
-  items: [createTestOrderItem()],
-  ...overrides
-});
-
-export { createTestOrderItem, createTestOrderInput };
-```
-
-```typescript
-// order.test.ts (refactored with factories)
-import { describe, it, expect } from 'vitest';
-import { createOrder, processOrder, completeOrder, cancelOrder } from './order';
-import { createTestOrderInput, createTestOrderItem } from './order.test-factory';
-
-describe('Order Processing', () => {
-  it('should create a valid order with items', () => {
-    const order = createOrder(
-      createTestOrderInput({
-        customerId: 'cust-123',
-        items: [createTestOrderItem({ productId: 'prod-1', quantity: 2 })]
-      })
-    );
-
-    expect(order.id).toBeDefined();
-    expect(order.customerId).toBe('cust-123');
-    expect(order.items).toHaveLength(1);
-    expect(order.status).toBe('pending');
-    expect(order.total).toBe(20.00);
-    expect(order.createdAt).toBeInstanceOf(Date);
+it('should reject invalid discount percentages', () => {
+  const order = createOrder({
+    customerId: 'cust-123',
+    items: [{ productId: 'prod-1', quantity: 1, unitPrice: 100.00 }]
   });
 
-  it('should throw error for empty items array', () => {
-    expect(() =>
-      createOrder(createTestOrderInput({ items: [] }))
-    ).toThrow();
-  });
-
-  it('should throw error for negative quantities', () => {
-    expect(() =>
-      createOrder(
-        createTestOrderInput({
-          items: [createTestOrderItem({ quantity: -1 })]
-        })
-      )
-    ).toThrow();
-  });
-
-  it('should process a pending order', () => {
-    const order = createOrder(createTestOrderInput());
-    const processed = processOrder(order);
-
-    expect(processed.status).toBe('processing');
-    expect(processed.id).toBe(order.id);
-  });
-
-  it('should complete a processing order', () => {
-    const order = createOrder(createTestOrderInput());
-    const processing = processOrder(order);
-    const completed = completeOrder(processing);
-
-    expect(completed.status).toBe('completed');
-  });
-
-  it('should cancel a pending order', () => {
-    const order = createOrder(createTestOrderInput());
-    const cancelled = cancelOrder(order);
-
-    expect(cancelled.status).toBe('cancelled');
-  });
+  expect(() => applyDiscount(order, -0.1)).toThrow();
+  expect(() => applyDiscount(order, 1.1)).toThrow();
 });
 ```
 
-**Benefits:**
-- Tests focus on what's being tested (overrides highlight intent)
-- Reduced duplication in test setup
-- Easy to add new default values
-- Tests remain readable and maintainable
+**Run tests:** ❌ Fails - `applyDiscount` doesn't exist, schema missing `discount` field
+
+### Green: Update Schema and Add Function
+
+```typescript
+// Update OrderSchema
+const OrderSchema = z.object({
+  id: z.string(),
+  customerId: z.string().min(1),
+  items: z.array(OrderItemSchema).min(1),
+  status: z.enum(['pending', 'processing', 'completed', 'cancelled']),
+  total: z.number().nonnegative(),
+  discount: z.number().nonnegative().default(0),
+  createdAt: z.date()
+});
+
+// Add discount validation
+const DiscountSchema = z.number().min(0).max(1);
+
+// Implement applyDiscount
+const applyDiscount = (order: Order, discountPercent: number): Order => {
+  const validated = DiscountSchema.parse(discountPercent);
+  const discountAmount = order.total * validated;
+  const newTotal = order.total - discountAmount;
+
+  return OrderSchema.parse({
+    ...order,
+    discount: discountAmount,
+    total: newTotal
+  });
+};
+
+export { applyDiscount };
+```
+
+**Run tests:** ✅ Passes
+
+### Refactor: Extract Calculation
+
+```typescript
+const calculateDiscount = (total: number, percent: number): number => {
+  const validated = DiscountSchema.parse(percent);
+  return total * validated;
+};
+
+const applyDiscount = (order: Order, discountPercent: number): Order => {
+  const discountAmount = calculateDiscount(order.total, discountPercent);
+
+  return OrderSchema.parse({
+    ...order,
+    discount: discountAmount,
+    total: order.total - discountAmount
+  });
+};
+```
+
+**Tests:** ✅ Still pass
 
 ---
 
-## Complete Final Code
+## Final Code Structure
 
-### order.ts
 ```typescript
+// order.ts
 import { z } from 'zod';
 
-// Schema-first design
+// Schemas
 const OrderItemSchema = z.object({
   productId: z.string().min(1),
   quantity: z.number().int().positive(),
@@ -523,115 +299,66 @@ const OrderSchema = z.object({
   items: z.array(OrderItemSchema).min(1),
   status: z.enum(['pending', 'processing', 'completed', 'cancelled']),
   total: z.number().nonnegative(),
+  discount: z.number().nonnegative().default(0),
   createdAt: z.date()
 });
 
+const DiscountSchema = z.number().min(0).max(1);
+
+// Types
 type OrderItem = z.infer<typeof OrderItemSchema>;
 type Order = z.infer<typeof OrderSchema>;
-type OrderStatus = Order['status'];
 
-type CreateOrderInput = {
-  customerId: string;
-  items: OrderItem[];
-};
-
-type StatusTransition = {
-  from: OrderStatus;
-  to: OrderStatus;
-  errorMessage: string;
-};
-
-const createOrder = (input: CreateOrderInput): Order => {
-  const total = input.items.reduce(
-    (sum, item) => sum + (item.quantity * item.unitPrice),
-    0
-  );
-
-  const order = {
+// Functions
+const createOrder = (input: { customerId: string; items: OrderItem[] }): Order => {
+  const total = input.items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+  return OrderSchema.parse({
     id: `order-${Date.now()}`,
     customerId: input.customerId,
     items: input.items,
-    status: 'pending' as const,
+    status: 'pending',
     total,
+    discount: 0,
     createdAt: new Date()
-  };
-
-  return OrderSchema.parse(order);
+  });
 };
 
-const transitionOrderStatus = (
-  order: Order,
-  transition: StatusTransition
-): Order => {
-  if (order.status !== transition.from) {
-    throw new Error(transition.errorMessage);
-  }
+const ensurePendingStatus = (order: Order): void => {
+  if (order.status !== 'pending') throw new Error('Can only process pending orders');
+};
 
-  const updated = {
+const processOrder = (order: Order): Order => {
+  ensurePendingStatus(order);
+  return OrderSchema.parse({ ...order, status: 'processing' });
+};
+
+const calculateDiscount = (total: number, percent: number): number => {
+  return total * DiscountSchema.parse(percent);
+};
+
+const applyDiscount = (order: Order, discountPercent: number): Order => {
+  const discountAmount = calculateDiscount(order.total, discountPercent);
+  return OrderSchema.parse({
     ...order,
-    status: transition.to
-  };
-
-  return OrderSchema.parse(updated);
+    discount: discountAmount,
+    total: order.total - discountAmount
+  });
 };
 
-const processOrder = (order: Order): Order =>
-  transitionOrderStatus(order, {
-    from: 'pending',
-    to: 'processing',
-    errorMessage: 'Can only process pending orders'
-  });
-
-const completeOrder = (order: Order): Order =>
-  transitionOrderStatus(order, {
-    from: 'processing',
-    to: 'completed',
-    errorMessage: 'Can only complete processing orders'
-  });
-
-const cancelOrder = (order: Order): Order =>
-  transitionOrderStatus(order, {
-    from: 'pending',
-    to: 'cancelled',
-    errorMessage: 'Can only cancel pending orders'
-  });
-
-export {
-  createOrder,
-  processOrder,
-  completeOrder,
-  cancelOrder,
-  OrderSchema,
-  OrderItemSchema
-};
+export { createOrder, processOrder, applyDiscount, OrderSchema, OrderItemSchema };
 export type { Order, OrderItem };
 ```
 
----
+## Key Lessons
 
-## Key Takeaways
+1. **Schema-First**: Zod schemas catch edge cases automatically
+2. **Red-Green-Refactor**: Each iteration follows strict cycle
+3. **Behavioral Testing**: Tests verify outcomes, not implementation
+4. **Small Steps**: Each iteration adds one behavior
+5. **Refactoring Safety**: Tests ensure refactoring doesn't break behavior
+6. **Immutability**: All functions return new objects (no mutation)
 
-1. **Red-Green-Refactor Cycle:**
-   - Red: Write failing test first
-   - Green: Minimum code to pass
-   - Refactor: Assess and improve (only when valuable)
-
-2. **Schema-First Design:**
-   - Define Zod schemas before types
-   - Derive types from schemas
-   - Schema validation catches edge cases automatically
-
-3. **Behavioral Testing:**
-   - Test through public API only
-   - Focus on observable outcomes
-   - Don't test implementation details
-
-4. **Refactoring Discipline:**
-   - Wait for patterns to emerge (Rule of Three)
-   - Extract structural duplication (not semantic)
-   - Keep tests passing throughout
-
-5. **Factory Functions:**
-   - Reduce test duplication
-   - Make test intent clear through overrides
-   - Maintain readability and maintainability
+## Related
+- [TDD Cycle](../workflows/tdd-cycle.md)
+- [Schema Composition](schema-composition.md)
+- [Refactoring Patterns](../patterns/refactoring/common-patterns.md)
