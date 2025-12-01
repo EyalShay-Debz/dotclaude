@@ -92,7 +92,9 @@ confirm() {
   local response
 
   read -rp "$prompt [y/N]: " response
-  [[ "${response,,}" == "y" ]]
+  
+  # Compatible check for "y" or "Y" without using ${response,,}
+  [[ "$response" == "y" || "$response" == "Y" ]]
 }
 
 # =============================================================================
